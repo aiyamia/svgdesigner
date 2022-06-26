@@ -1,0 +1,82 @@
+html{
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+body {
+  display: flex;
+  align-items: left;
+  justify-content: center;
+  padding: 50px;
+  font: 14px "Lucida Grande", Helvetica, Arial, sans-serif;
+}
+
+a {
+  color: #00B7FF;
+}
+
+
+
+#container{
+  display: flex;
+  align-items: left;
+  justify-content: center;
+  pointer-events: none;
+}
+
+.widgets{
+  padding: 5px;
+  width: min-content;
+  height: fit-content;
+  background-color: lightgrey;
+}
+.widgets button{
+  width: 2rem;
+  height: 2rem;
+  border:1px solid;
+  margin: 5px;
+  background-color: white;
+}
+
+#select{
+  background-color: white;
+  
+}
+#draw{
+  background-color: orange;
+}
+#clear:hover{
+  background-color: lightcoral;
+}
+#clear:active{
+  background-color: black;
+}
+#download:hover{
+  background-color: lightgrey;
+}
+#download:active{
+  background-color: black;
+}
+
+img{
+  max-width:100%;
+  max-height:100%;
+}
+#lines {
+  border:1px solid;
+  pointer-events:initial
+}
+#lines>g  {
+  pointer-events: none;
+}
+#lines circle {
+  cursor: grabbing;
+  pointer-events:initial
+}
+#lines path {
+  cursor: grabbing;
+  pointer-events:initial
+}
+line{stroke:rgb(255,0,0);stroke-width:2;pointer-events:none;}
+

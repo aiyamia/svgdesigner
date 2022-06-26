@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title><%= title %></title>
+    <link rel='stylesheet' href='/stylesheets/style.css' />
+    <script src="/javascripts/svg-export.min.js"></script>
+    <script src="/javascripts/jquery.min.js"></script>
+    <script src="/javascripts/jquery-ui.min.js"></script>
+  </head>
+  <body>
+    <div class="widgets">
+      <button id="draw"><img src="/images/pencil-svgrepo-com.svg"/></button>
+      <button id="select"><img src="/images/cursor-svgrepo-com.svg"/></button>
+      <button id="clear"><img src="/images/trash-svgrepo-com.svg"/></button>
+      <button id="download"><img src="/images/download-svgrepo-com.svg"/></button>
+    </div>
+    <div id="container">
+      <svg id="lines" height="80vh" width="80vw"></svg>
+    </div>
+    <script src="/javascripts/widgets.js"></script>
+    <script src="/javascripts/elements.js"></script>
+    <script src="/javascripts/draw.js"></script>
+  </body>
+</html>
