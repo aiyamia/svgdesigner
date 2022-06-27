@@ -33,22 +33,20 @@ class Element {
       if(this.element_b.getAttribute('visibility')=='visible'){
         this.hide_bbox()
         currentGroup.removeChild(this)
-        console.log(`currentGroup.children = `);
-        console.log(currentGroup.children);
+        console.log(`你选中了${Object.keys(currentGroup.children)}`);
       }else{
-        console.log(currentGroup.element_b);
+        // console.log(currentGroup.element_b);
         currentGroup.addChild(this)
         this.element_b.setAttribute('visibility','visible')
-        console.log(`currentGroup.children = `);
-        console.log(currentGroup.children);
+        console.log(`你选中了${Object.keys(currentGroup.children)}`);
       }
     }else{
       hide_all_bbox()
       this.show_bbox()
       currentGroup.children = {}
       currentGroup.addChild(this)
-      console.log(`currentGroup.children = `);
-      console.log(currentGroup.children);
+      currentGroup.hide_bbox()
+      console.log(`你选中了${Object.keys(currentGroup.children)}`);
     }
   }
   static clear(){
@@ -226,6 +224,7 @@ class Point extends Element {
     }
     id_target = null;
     currentGroup.update_bbox()
+    currentGroup.hide_bbox()
   }
 
 }
@@ -290,6 +289,18 @@ class Line extends Element {
     line.setAttribute('stroke-width', this.width);
     line.setAttribute('stroke', this.color);
     line.setAttribute('fill', "transparent");
+    this.update_bbox()
+  }
+  update_loc_inc(dx,dy) {
+    this.p1.update_loc_inc(dx,dy)
+    this.p2.update_loc_inc(dx,dy)
+  }
+  update_bbox(){
+    updateBboxElement(this.element_b,this.element_c)
+    this.hide_bbox()    
+  }
+  setParent(new_parent){
+    this.parent = new_parent
   }
 }
 
@@ -323,6 +334,7 @@ class Group {
 
     this.element_b.addEventListener("mousedown", e => {
       if(draw_select==0){
+        console.log(`正在移动：组${this.id}`);
         down_elements = true
         moving_group = true
         group_to_move = this
@@ -339,7 +351,6 @@ class Group {
     }
   }
   update_bbox(){
-    // let origin_svg_innerHTML = svg.innerHTML;
     let group = document.createElementNS(SVG_NS, "g");
     group.setAttribute('id','tmp')
     for(let name in this.children){
@@ -347,10 +358,7 @@ class Group {
     }
     svg.appendChild(group)
     updateBboxElement(this.element_b,group)
-    // document.querySelector(`#${this.constructor.name}${this.id}_bbox`) = updateBboxElement(this.element_b,group)
     svg.removeChild(group)
-    // svg.innerHTML = origin_svg_innerHTML
-    // document.querySelector(`#${this.constructor.name}${this.id}_bbox`).outerHTML = this.element_b.outerHTML
   }
   setParent(new_parent){
     this.parent = new_parent

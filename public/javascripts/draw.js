@@ -65,6 +65,7 @@ lines.addEventListener("mousemove", e => {
     m = oMousePosSVG(e)
     p2.update_loc(m.x,m.y)
     currentGroup.update_bbox()
+    currentGroup.hide_bbox()
   }
   if(moving_line){
     m = oMousePosSVG(e);
@@ -74,11 +75,15 @@ lines.addEventListener("mousemove", e => {
     line_to_move.p2.update_loc(p2_x0 + dx,p2_y0 + dy)
     line_to_move.show_bbox()
     currentGroup.update_bbox()
+    currentGroup.hide_bbox()
   }
   if(moving_group){
     m = oMousePosSVG(e);
     dx = m.x - x0
     dy = m.y - y0
+    x0 = m.x
+    y0 = m.y
+    // console.log(`x0=${x0};y0=${y0}`);
     group_to_move.moveChildren(dx,dy)
     group_to_move.update_bbox()
   }
