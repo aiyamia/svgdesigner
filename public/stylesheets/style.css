@@ -58,6 +58,12 @@ a {
 #download:active{
   background-color: black;
 }
+#undo:hover{
+  background-color: rgb(180, 255, 196);
+}
+#undo:active{
+  background-color: black;
+}
 
 img{
   max-width:100%;

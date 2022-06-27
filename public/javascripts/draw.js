@@ -33,10 +33,12 @@ m = {};// the mouse position
 drawing = false;
 moving = false;
 moving_line = false;
+moving_group = false;
 snapping = false;
 id_target = null;
 
-var x0,y0,p1_x0,p1_y0,p2_x0,p2_y0,dx,dy,line_to_move,currentGroup;
+var x0,y0,p1_x0,p1_y0,p2_x0,p2_y0,dx,dy,line_to_move,group_to_move;
+currentGroup = new Group()
 var down_elements;
 //events
 // on mouse down you create the line and append it to the svg element
@@ -63,7 +65,6 @@ lines.addEventListener("mousemove", e => {
     m = oMousePosSVG(e)
     p2.update_loc(m.x,m.y)
     currentGroup.update_bbox()
-    currentGroup.show_bbox()
   }
   if(moving_line){
     m = oMousePosSVG(e);
@@ -71,8 +72,15 @@ lines.addEventListener("mousemove", e => {
     dy = m.y - y0
     line_to_move.p1.update_loc(p1_x0 + dx,p1_y0 + dy)
     line_to_move.p2.update_loc(p2_x0 + dx,p2_y0 + dy)
+    line_to_move.show_bbox()
     currentGroup.update_bbox()
-    currentGroup.show_bbox()
+  }
+  if(moving_group){
+    m = oMousePosSVG(e);
+    dx = m.x - x0
+    dy = m.y - y0
+    group_to_move.moveChildren(dx,dy)
+    group_to_move.update_bbox()
   }
 });
 // on mouse up or mouse out the line ends here and you "empty" the eLine and oLine to be able to draw a new line
@@ -84,23 +92,66 @@ lines.addEventListener("mouseup", e => {
   if(moving_line){
     moving_line = false
   }
+  if(moving_group){
+    moving_group = false;
+  }
 });
 
-function getBboxElement(element){
+document.addEventListener("keydown", e => {
+  if (e.ctrlKey || e.metaKey) {
+    switch (e.key.toLowerCase()) {
+        case 's':
+            e.preventDefault();
+            alert('ctrl-s');
+            break;
+        case 'f':
+            e.preventDefault();
+             alert('ctrl-f');
+            break;
+        case 'g':
+            e.preventDefault();
+            confirmGroup();
+            break;
+    }
+  }
+})
+
+
+function confirmGroup() {
+  currentGroup = new Group()
+}
+
+
+
+function generateBboxElement(element){
   let rectBBox = document.createElementNS(SVG_NS, "rect");
   rectBBox.setAttribute("stroke","black");
   rectBBox.setAttribute("stroke-width","1");
   rectBBox.setAttribute("fill","none");
   rectBBox.setAttribute("stroke-dasharray","2,2");
   let bbox = element.getBBox();
-  let w =  Math.max(1.5*bbox.width,10)
-  let h =  Math.max(1.5*bbox.height,10)
-  rectBBox.setAttribute('x', bbox.x-(w-bbox.width)/2);
-  rectBBox.setAttribute('y', bbox.y-(w-bbox.height)/2);
+  let pad = 5
+  let w =  2*pad+bbox.width
+  let h =  2*pad+bbox.height
+  rectBBox.setAttribute('x', bbox.x-pad);
+  rectBBox.setAttribute('y', bbox.y-pad);
 
   rectBBox.setAttribute('width', w);
   rectBBox.setAttribute('height', h);
   rectBBox.setAttribute('visibility', 'hidden');
+  return rectBBox
+}
+function updateBboxElement(rectBBox,element){
+  let bbox = element.getBBox();
+  let pad = 5
+  let w =  2*pad+bbox.width
+  let h =  2*pad+bbox.height
+  rectBBox.setAttribute('x', bbox.x-pad);
+  rectBBox.setAttribute('y', bbox.y-pad);
+
+  rectBBox.setAttribute('width', w);
+  rectBBox.setAttribute('height', h);
+  rectBBox.setAttribute('visibility', 'visible');
   return rectBBox
 }
 

@@ -32,6 +32,11 @@ clear_btn.addEventListener('click', function onClick() {
   Point.clear();
 });
 
+const undo_btn = document.getElementById('undo');
+undo_btn.addEventListener('click', function onClick() {
+  
+});
+
 
 
 
