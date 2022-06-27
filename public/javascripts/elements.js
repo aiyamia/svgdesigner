@@ -57,21 +57,19 @@ class Element {
     let bbox_element = this.element_b;
     let bbox = this.element_c.getBBox();
     let pad = 5
-    let w =  2*pad+bbox.width
-    let h =  2*pad+bbox.height
+    let w = 2*pad+bbox.width
+    let h = 2*pad+bbox.height
     bbox_element.setAttribute('x', bbox.x-pad);
     bbox_element.setAttribute('y', bbox.y-pad);
     bbox_element.setAttribute('width', w);
     bbox_element.setAttribute('height', h);
-    // bbox_element.setAttribute('x', bbox.x);
-    // bbox_element.setAttribute('y', bbox.y);
-    // bbox_element.setAttribute('width', bbox.width);
-    // bbox_element.setAttribute('height', bbox.height);
     bbox_element.setAttribute('visibility','visible')
+    bbox_element.setAttribute('pointer-events','all')
   }
   hide_bbox(){
     let bbox_element = this.element_b;
     bbox_element.setAttribute('visibility','hidden')
+    bbox_element.setAttribute('pointer-events','initial')
   }
 }
 
@@ -226,7 +224,6 @@ class Point extends Element {
     currentGroup.update_bbox()
     currentGroup.hide_bbox()
   }
-
 }
 
 
@@ -278,9 +275,6 @@ class Line extends Element {
         this.event_select(e)
       }
     })
-    line.addEventListener("mouseup", e => {
-      down_elements = false
-    })
   }
   
   update() {
@@ -323,6 +317,7 @@ class Group {
     volumn_init.setAttribute('height',100)
     group.appendChild(volumn_init)
     this.parent.appendChild(group)
+  
     let bbox_element = generateBboxElement(group)
     
     bbox_element.setAttribute('id', `${this.constructor.name}${this.id}_bbox`);
@@ -331,6 +326,8 @@ class Group {
     this.element_b = bbox_element;
     this.parent.appendChild(bbox_element)
     this.parent.removeChild(group)
+    console.log("bbox_element");
+    console.log(bbox_element);
 
     this.element_b.addEventListener("mousedown", e => {
       if(draw_select==0){
@@ -360,6 +357,7 @@ class Group {
     updateBboxElement(this.element_b,group)
     svg.removeChild(group)
   }
+
   setParent(new_parent){
     this.parent = new_parent
   }
@@ -375,12 +373,14 @@ class Group {
   show_bbox(){
     let bbox_element = document.getElementById(`${this.constructor.name}${this.id}_bbox`)
     bbox_element.setAttribute('visibility','visible')
-    console.log(`bbox_element =`);
-    console.log(bbox_element);
+    bbox_element.setAttribute('pointer-events','all')
+    // console.log(`bbox_element =`);
+    // console.log(bbox_element);
   }
   hide_bbox(){
     let bbox_element = document.getElementById(`${this.constructor.name}${this.id}_bbox`)
     bbox_element.setAttribute('visibility','hidden')
+    bbox_element.setAttribute('pointer-events','initial')
   }
   update() {
 
