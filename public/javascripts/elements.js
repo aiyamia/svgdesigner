@@ -64,12 +64,10 @@ class Element {
     bbox_element.setAttribute('width', w);
     bbox_element.setAttribute('height', h);
     bbox_element.setAttribute('visibility','visible')
-    bbox_element.setAttribute('pointer-events','all')
   }
   hide_bbox(){
     let bbox_element = this.element_b;
     bbox_element.setAttribute('visibility','hidden')
-    bbox_element.setAttribute('pointer-events','initial')
   }
 }
 
@@ -357,7 +355,6 @@ class Group {
     updateBboxElement(this.element_b,group)
     svg.removeChild(group)
   }
-
   setParent(new_parent){
     this.parent = new_parent
   }
@@ -373,14 +370,12 @@ class Group {
   show_bbox(){
     let bbox_element = document.getElementById(`${this.constructor.name}${this.id}_bbox`)
     bbox_element.setAttribute('visibility','visible')
-    bbox_element.setAttribute('pointer-events','all')
     // console.log(`bbox_element =`);
     // console.log(bbox_element);
   }
   hide_bbox(){
     let bbox_element = document.getElementById(`${this.constructor.name}${this.id}_bbox`)
     bbox_element.setAttribute('visibility','hidden')
-    bbox_element.setAttribute('pointer-events','initial')
   }
   update() {
 

@@ -211,7 +211,6 @@ function updateBboxElement(rectBBox,element){
   rectBBox.setAttribute('width', w);
   rectBBox.setAttribute('height', h);
   rectBBox.setAttribute('visibility', 'visible');
-  rectBBox.setAttribute('pointer-events','all')
   return rectBBox
 }
 
@@ -219,7 +218,6 @@ function hide_all_bbox() {
   let bbox_els = document.getElementsByClassName('bbox')
   for(let i_el=0;i_el<bbox_els.length;i_el++){
     bbox_els[i_el].setAttribute('visibility','hidden')
-    bbox_els[i_el].setAttribute('pointer-events','initial')
   }
 }
 // a function to detect the mouse position on a resizable SVG element
