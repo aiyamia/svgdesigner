@@ -27,7 +27,26 @@ class Element {
     this.element_c = core_element;
     this.element_g = group_element;
   }
-  
+  event_select(e){
+    down_elements = true
+    hide_all_bbox()
+    if(e.ctrlKey){
+      if(Object.keys(currentGroup.children).includes(`${this.constructor.name}${this.id}`)){
+        currentGroup.removeChild(this)
+        console.log(`当前currentGroup：\n${Object.keys(currentGroup.children)}`);
+      }else{
+        currentGroup.addChild(this)
+        // console.log(`当前currentGroup：\n${Object.keys(currentGroup.children)}`);
+      }
+    }else{
+      currentGroup.children = {}
+      currentGroup.addChild(this)
+      // console.log(`当前currentGroup：\n${Object.keys(currentGroup.children)}`);
+    }
+    currentGroup.show_bbox()
+    currentGroup.element_b.setAttribute('pointer-events','all')
+    currentGroup.mousedown_event(e)
+  }
   
   show_bbox(){
     let bbox_element = this.element_b;
@@ -291,27 +310,7 @@ class Group {
     this.element_b.addEventListener("mousemove", this.mousemove_event)
     this.element_b.addEventListener("mouseup", this.mouseup_event)
   }
-  event_select(e){
-    down_elements = true
-    hide_all_bbox()
-    if(e.ctrlKey){
-      if(Object.keys(currentGroup.children).includes(`${this.constructor.name}${this.id}`)){
-        currentGroup.removeChild(this)
-        console.log(`当前currentGroup：\n${Object.keys(currentGroup.children)}`);
-      }else{
-        currentGroup.addChild(this)
-        // console.log(`当前currentGroup：\n${Object.keys(currentGroup.children)}`);
-      }
-    }else{
-      // console.log(`要清理`);
-      currentGroup.children = {}
-      currentGroup.addChild(this)
-      // console.log(`当前currentGroup：\n${Object.keys(currentGroup.children)}`);
-    }
-    currentGroup.show_bbox()
-    currentGroup.element_b.setAttribute('pointer-events','all')
-    currentGroup.mousedown_event(e)
-  }
+
   mousedown_event = e => {
     if(draw_select==0){
       // console.log(`正在移动：组${this.id}`);
