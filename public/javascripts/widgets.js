@@ -30,7 +30,7 @@ const clear_btn = document.getElementById('clear');
 clear_btn.addEventListener('click', function onClick() {
   Point.clear();
   Line.clear();
-  currentGroup.hide_bbox()
+  Group.clear();
 });
 
 const undo_btn = document.getElementById('undo');

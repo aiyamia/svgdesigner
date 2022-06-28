@@ -2,11 +2,10 @@ class Element {
   element_c;
   element_b;
   element_g;
-  parent;
   x;
   y;
-  constructor(obj,parent=svg) {
-    this.parent = parent;
+  constructor() {
+    this.parentGroup = {}
   }
   init_element(type,obj){
     let group_element = document.createElementNS(SVG_NS, "g");
@@ -22,31 +21,12 @@ class Element {
     bbox_element.setAttribute('class', `bbox`);
     group_element.appendChild(core_element)
     group_element.appendChild(bbox_element)
-    this.parent.appendChild(group_element)
+    svg.appendChild(group_element)
     this.element_b = bbox_element;
     this.element_c = core_element;
     this.element_g = group_element;
   }
-  event_select(e){
-    down_elements = true
-    hide_all_bbox()
-    if(e.ctrlKey){
-      if(Object.keys(currentGroup.children).includes(`${this.constructor.name}${this.id}`)){
-        currentGroup.removeChild(this)
-        console.log(`当前currentGroup：\n${Object.keys(currentGroup.children)}`);
-      }else{
-        currentGroup.addChild(this)
-        // console.log(`当前currentGroup：\n${Object.keys(currentGroup.children)}`);
-      }
-    }else{
-      currentGroup.children = {}
-      currentGroup.addChild(this)
-      // console.log(`当前currentGroup：\n${Object.keys(currentGroup.children)}`);
-    }
-    currentGroup.show_bbox()
-    currentGroup.element_b.setAttribute('pointer-events','all')
-    currentGroup.mousedown_event(e)
-  }
+  
   
   show_bbox(){
     let bbox_element = this.element_b;
@@ -93,9 +73,10 @@ class Point extends Element {
 
     //下面这波绑定是在用“Group”操作“Point”时snapshow()、snap()仍然及时精准响应的必要条件。
     let point = this.element_c;
+    point.myObj = this;
     point.addEventListener("mousedown", e => {
       if(draw_select==0){
-        this.event_select(e)
+        currentGroup.mousedown_event(e)
       }
     })
     point.addEventListener("mousemove", e => {
@@ -207,8 +188,10 @@ class Point extends Element {
 class Line extends Element {
   static max_id = 0;
   static list = {}
+  
   constructor(obj,parent=svg) {
     super();
+    
     this.id = ++Line.max_id;
     Line.list[this.id] = this;
     this.p1 = obj.p1;
@@ -217,7 +200,7 @@ class Line extends Element {
     this.p2.line[this.id] = this;
     this.width = obj.width || 2;
     this.color = obj.color || 'red';
-
+    
     let group_element = document.createElementNS(SVG_NS, "g");
     group_element.setAttribute('id', `${this.constructor.name}${this.id}`);
     let line = document.createElementNS(SVG_NS, "path");
@@ -235,15 +218,14 @@ class Line extends Element {
     this.element_b = bbox_element;
     this.element_c = line;
     this.element_g = group_element;
-    this.parent.prepend(group_element);
+    svg.prepend(group_element);
     for(let i_g in Group.list){
-      this.parent.prepend(Group.list[i_g].element_b)
+      svg.prepend(Group.list[i_g].element_b)
     }
-
+    line.myObj = this;
     line.addEventListener("mousedown", e => {
       if(draw_select==0){
-        // console.log(`elements.js Line mousedown`);
-        this.event_select(e)
+        currentGroup.mousedown_event(e)
       }
     })
   }
@@ -264,9 +246,6 @@ class Line extends Element {
     updateBboxElement(this.element_b,this.element_c)
     this.hide_bbox()    
   }
-  setParent(new_parent){
-    this.parent = new_parent
-  }
   static clear(){
     for(let name in Line.list){
       svg.removeChild(Line.list[name].element_g)
@@ -281,11 +260,11 @@ class Group {
   static max_id = 0;
   static list = {}
   element_b;
-  constructor(parent=svg) {
+  constructor() {
     this.id = ++Group.max_id;
     Group.list[this.id] = this;
     this.children = {}
-    this.parent = parent
+    this.parentGroup = {}
     
     let group = document.createElementNS(SVG_NS, "g");
     group.setAttribute('id','group_init')
@@ -294,7 +273,7 @@ class Group {
     volumn_init.setAttribute('width',100)
     volumn_init.setAttribute('height',100)
     group.appendChild(volumn_init)
-    this.parent.appendChild(group)
+    svg.appendChild(group)
   
     let bbox_element = generateBboxElement(group)
     
@@ -302,22 +281,49 @@ class Group {
     bbox_element.setAttribute('class', `bbox`);
     
     this.element_b = bbox_element;
-    this.parent.prepend(bbox_element)
-    this.parent.removeChild(group)
+    svg.prepend(bbox_element)
+    svg.removeChild(group)
 
     //将事件响应函数分出去单独写，是为了让组内的元素接收到的事件也传递到这里。
+    this.element_b.myObj = this;
     this.element_b.addEventListener("mousedown", this.mousedown_event)
     this.element_b.addEventListener("mousemove", this.mousemove_event)
     this.element_b.addEventListener("mouseup", this.mouseup_event)
   }
-
   mousedown_event = e => {
+    let this_target = e.currentTarget.myObj;
     if(draw_select==0){
-      // console.log(`正在移动：组${this.id}`);
+      down_elements = true
+      hide_all_bbox()
+      if(e.ctrlKey){
+        if(Object.keys(this.children).includes(`${this_target.constructor.name}${this_target.id}`)){
+          this.removeChild(this_target)
+          // console.log(`当前this：\n${Object.keys(this.children)}`);
+        }else{
+          this.addChild(this_target)
+          // console.log(`当前this：\n${Object.keys(this.children)}`);
+        }
+      }else{
+        if(this_target.constructor.name!="Group"){
+          this.children = {}
+          this.addChild(this_target)
+        }else{
+          if(this_target.id!=this.id){
+            console.log(`这是个和当前组不一样的Group`);
+            this.children = {}
+            this.addChild(this_target)
+            console.log(this);
+          }
+        }
+        // console.log(`当前组内成员：\n${Object.keys(this.children)}`);
+      }
+      this.show_bbox()
+      this.element_b.setAttribute('pointer-events','all')
+      
+      // console.log(`将移动：组${this.id}`);
       down_elements = true
       moving_group = true
       group_to_move = this
-      // console.log(this);
       m = oMousePosSVG(e);
       x0 = m.x;
       y0 = m.y;
@@ -378,33 +384,56 @@ class Group {
         p[child.p2.id]=child.p2
       }else if(child.constructor.name=="Point"){
         p[child.id]=child
+      }else if(child.constructor.name=="Group"){
+        child.moveChildren(dx,dy)
       }
     }
     for(let i_p in p){
       p[i_p].update_loc_inc(dx,dy)
     }
   }
-  update_bbox(){
+  update_bbox(recursive=true){
     let group = document.createElementNS(SVG_NS, "g");
     group.setAttribute('id','tmp')
+    
     for(let name in this.children){
-      group.appendChild(this.children[name].element_g.cloneNode(true))
+      if(this.children[name].constructor.name=="Group"){
+        if(recursive){
+          this.children[name].update_bbox()
+          // this.children[name].show_bbox()
+        }
+        group.appendChild(this.children[name].element_b.cloneNode(true))
+      }else{
+        group.appendChild(this.children[name].element_g.cloneNode(true))
+      }
     }
     svg.appendChild(group)
     updateBboxElement(this.element_b,group)
+    
     svg.removeChild(group)
-  }
-  setParent(new_parent){
-    this.parent = new_parent
+    if(recursive){
+      // let childArray = Object.keys(this.children)
+      // for(let name in Group.list){
+      //   let intersect = Object.keys(Group.list[name].children).filter(x => childArray.includes(x))
+      //   if(intersect.length>0){
+      //     Group.list[name].update_bbox(false)
+      //   }
+      // }
+      for(let name in Group.list){
+        Group.list[name].update_bbox(false)
+      }
+    }
   }
 
   addChild(obj){
     this.children[`${obj.constructor.name}${obj.id}`]=obj
     this.update_bbox()
+    obj.parentGroup[`Group${this.id}`] = this
   }
   removeChild(obj){
     delete this.children[`${obj.constructor.name}${obj.id}`]
     this.update_bbox()
+    delete obj.parentGroup[`Group${this.id}`]
   }
   show_bbox(){
     let bbox_element = document.getElementById(`${this.constructor.name}${this.id}_bbox`)
@@ -412,6 +441,12 @@ class Group {
     if(Object.keys(this.children).length>1){
       for(let i_child in this.children){
         this.children[i_child].show_bbox()
+      }
+    }else if(Object.keys(this.children).length==1){
+      if(this.children[Object.keys(this.children)[0]].constructor.name=="Group"){
+        for(let i_child in this.children){
+          this.children[i_child].show_bbox()
+        }
       }
     }
   }
@@ -426,6 +461,14 @@ class Group {
   }
   remove(){
     
+  }
+  static clear(){
+    for(let name in Group.list){
+      svg.removeChild(Group.list[name].element_b)
+    }
+    Group.max_id = 0;
+    Group.list = {};
+    currentGroup = new Group();
   }
 }
 class Selection {
