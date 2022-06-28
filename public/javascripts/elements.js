@@ -194,6 +194,7 @@ class Line extends Element {
     
     this.id = ++Line.max_id;
     Line.list[this.id] = this;
+    this.bezier = {};
     this.p1 = obj.p1;
     this.p2 = obj.p2;
     this.p1.line[this.id] = this;
@@ -229,13 +230,17 @@ class Line extends Element {
       }
     })
   }
-  
   update() {
     let line = this.element_c;
     line.setAttribute('d', `M ${this.p1.x} ${this.p1.y} L ${this.p2.x} ${this.p2.y}`);
     line.setAttribute('stroke-width', this.width);
     line.setAttribute('stroke', this.color);
     line.setAttribute('fill', "transparent");
+    if(Object.keys(this.bezier).length!=0){
+      for (let i_be in this.bezier){
+        this.bezier[i_be].update();
+      }
+    }
     this.update_bbox()
   }
   update_loc_inc(dx,dy) {
@@ -254,6 +259,7 @@ class Line extends Element {
     Line.list = {}
   }
 }
+
 
 
 class Group {
@@ -478,3 +484,78 @@ class Selection {
   
 }
 
+class Bezier extends Group {
+  static max_id = 0;
+  static list = {}
+  
+  constructor(obj) {
+    super();
+    this.id = ++Bezier.max_id;
+    Bezier.list[this.id] = this;
+    this.line1 = obj.line1
+    this.line2 = obj.line2
+    this.line1.bezier[this.id] = this
+    this.line2.bezier[this.id] = this
+
+    this.p1 = this.line1.p1;
+    this.p2 = this.line1.p2;
+    this.p3 = this.line2.p2;
+    this.p4 = this.line2.p1;
+    this.width = obj.width || 2;
+    this.color = obj.color || 'red';
+
+    this.addChild(this.line1)
+    this.addChild(this.line2)
+    
+    let group_element = document.createElementNS(SVG_NS, "g");
+    group_element.setAttribute('id', `${this.constructor.name}${this.id}`);
+    let bezier = document.createElementNS(SVG_NS, "path");
+    bezier.setAttribute('d', 
+    `M ${this.p1.x} ${this.p1.y} C ${this.p2.x} ${this.p2.y}, 
+    ${this.p3.x} ${this.p3.y}, ${this.p4.x} ${this.p4.y}`);
+    bezier.setAttribute('stroke-width', this.width);
+    bezier.setAttribute('stroke', this.color);
+    bezier.setAttribute('fill', "transparent");
+    this.element_c = bezier
+    
+    let bbox_element = generateBboxElement(bezier)
+    bbox_element.setAttribute('id', `${this.constructor.name}${this.id}_bbox`);
+    bbox_element.setAttribute('class', `bbox`);
+    group_element.appendChild(bezier)
+    group_element.appendChild(bbox_element)
+    
+    this.element_b = bbox_element;
+    this.element_g = group_element;
+    this.addChild(group_element)
+    svg.prepend(group_element);
+    for(let i_g in Group.list){
+      svg.prepend(Group.list[i_g].element_b)
+    }
+    bezier.myObj = this;
+    bezier.addEventListener("mousedown", e => {
+      if(draw_select==0){
+        currentGroup.mousedown_event(e)
+      }
+    })
+  }
+  update() {
+    let bezier = this.element_c;
+    bezier.setAttribute('d', `M ${this.p1.x} ${this.p1.y} C ${this.p2.x} ${this.p2.y}, 
+    ${this.p3.x} ${this.p3.y}, ${this.p4.x} ${this.p4.y}`);
+    bezier.setAttribute('stroke-width', this.width);
+    bezier.setAttribute('stroke', this.color);
+    bezier.setAttribute('fill', "transparent");
+    this.update_bbox()
+  }
+  // update_loc_inc(dx,dy) {
+  //   this.line1.update_loc_inc(dx,dy)
+  //   this.line2.update_loc_inc(dx,dy)
+  // }
+  // static clear(){
+  //   for(let name in Bezier.list){
+  //     svg.removeChild(Bezier.list[name].element_g)
+  //   }
+  //   Bezier.max_id = 0;
+  //   Bezier.list = {}
+  // }
+}

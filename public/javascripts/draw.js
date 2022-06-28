@@ -41,7 +41,7 @@ var group_to_move;
 var select_frame_element;
 currentGroup = new Group()
 var down_elements;
-
+var l;
 select_frame_element=document.createElementNS(SVG_NS,'rect')
 svg.appendChild(select_frame_element)
 select_frame_element.setAttribute('id','select_frame')
@@ -64,9 +64,15 @@ lines.addEventListener("mousedown", e => {
     m = oMousePosSVG(e);
     p1 = new Point({x:m.x,y:m.y})
     p2 = new Point({x:m.x,y:m.y})
+    if(l){
+      l0 = l
+    }
     
     l = new Line({p1:p1,p2:p2},lines)
     drawing = true
+    if(e.ctrlKey && l0){
+      b = new Bezier({line1:l0,line2:l})
+    }
   }else if(draw_select==0){
     // console.log(`draw.js mousedown`);
     if(!down_elements){
