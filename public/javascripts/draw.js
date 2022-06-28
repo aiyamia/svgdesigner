@@ -163,6 +163,7 @@ document.addEventListener("keydown", e => {
 
 
 function confirmGroup() {
+  console.log(`打组`);
   currentGroup = new Group()
 }
 

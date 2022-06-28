@@ -27,26 +27,7 @@ class Element {
     this.element_c = core_element;
     this.element_g = group_element;
   }
-  event_select(e){
-    down_elements = true
-    hide_all_bbox()
-    if(e.ctrlKey){
-      if(Object.keys(currentGroup.children).includes(`${this.constructor.name}${this.id}`)){
-        currentGroup.removeChild(this)
-        console.log(`当前currentGroup：\n${Object.keys(currentGroup.children)}`);
-      }else{
-        currentGroup.addChild(this)
-        // console.log(`当前currentGroup：\n${Object.keys(currentGroup.children)}`);
-      }
-    }else{
-      currentGroup.children = {}
-      currentGroup.addChild(this)
-      // console.log(`当前currentGroup：\n${Object.keys(currentGroup.children)}`);
-    }
-    currentGroup.show_bbox()
-    currentGroup.element_b.setAttribute('pointer-events','all')
-    currentGroup.mousedown_event(e)
-  }
+  
   
   show_bbox(){
     let bbox_element = this.element_b;
@@ -236,7 +217,9 @@ class Line extends Element {
     this.element_c = line;
     this.element_g = group_element;
     this.parent.prepend(group_element);
-    this.parent.prepend(currentGroup.element_b);
+    for(let i_g in Group.list){
+      this.parent.prepend(Group.list[i_g].element_b)
+    }
 
     line.addEventListener("mousedown", e => {
       if(draw_select==0){
@@ -277,11 +260,11 @@ class Line extends Element {
 
 class Group {
   static max_id = 0;
-  static Groups = {}
+  static list = {}
   element_b;
   constructor(parent=svg) {
     this.id = ++Group.max_id;
-    Group.Groups[this.id] = this;
+    Group.list[this.id] = this;
     this.children = {}
     this.parent = parent
     
@@ -300,7 +283,7 @@ class Group {
     bbox_element.setAttribute('class', `bbox`);
     
     this.element_b = bbox_element;
-    this.parent.appendChild(bbox_element)
+    this.parent.prepend(bbox_element)
     this.parent.removeChild(group)
 
     //将事件响应函数分出去单独写，是为了让组内的元素接收到的事件也传递到这里。
@@ -308,7 +291,27 @@ class Group {
     this.element_b.addEventListener("mousemove", this.mousemove_event)
     this.element_b.addEventListener("mouseup", this.mouseup_event)
   }
-
+  event_select(e){
+    down_elements = true
+    hide_all_bbox()
+    if(e.ctrlKey){
+      if(Object.keys(currentGroup.children).includes(`${this.constructor.name}${this.id}`)){
+        currentGroup.removeChild(this)
+        console.log(`当前currentGroup：\n${Object.keys(currentGroup.children)}`);
+      }else{
+        currentGroup.addChild(this)
+        // console.log(`当前currentGroup：\n${Object.keys(currentGroup.children)}`);
+      }
+    }else{
+      // console.log(`要清理`);
+      currentGroup.children = {}
+      currentGroup.addChild(this)
+      // console.log(`当前currentGroup：\n${Object.keys(currentGroup.children)}`);
+    }
+    currentGroup.show_bbox()
+    currentGroup.element_b.setAttribute('pointer-events','all')
+    currentGroup.mousedown_event(e)
+  }
   mousedown_event = e => {
     if(draw_select==0){
       // console.log(`正在移动：组${this.id}`);
