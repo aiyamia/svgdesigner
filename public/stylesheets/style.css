@@ -84,7 +84,9 @@ img{
   cursor: grabbing;
   pointer-events:initial
 }
-line{stroke:rgb(255,0,0);stroke-width:2;pointer-events:none;}
+line{
+  stroke:rgb(255,0,0);stroke-width:2;
+}
 
 .bbox{
   cursor: grabbing;

@@ -28,31 +28,26 @@ class Element {
     this.element_g = group_element;
   }
   event_select(e){
-    console.log(`您来了`);
+    down_elements = true
+    hide_all_bbox()
     if(e.ctrlKey){
-      if(this.element_b.getAttribute('visibility')=='visible'){
-        this.hide_bbox()
+      if(Object.keys(currentGroup.children).includes(`${this.constructor.name}${this.id}`)){
         currentGroup.removeChild(this)
-        console.log(`你选中了${Object.keys(currentGroup.children)}`);
+        console.log(`当前currentGroup：\n${Object.keys(currentGroup.children)}`);
       }else{
-        // console.log(currentGroup.element_b);
         currentGroup.addChild(this)
-        this.element_b.setAttribute('visibility','visible')
-        console.log(`你选中了${Object.keys(currentGroup.children)}`);
+        // console.log(`当前currentGroup：\n${Object.keys(currentGroup.children)}`);
       }
     }else{
-      hide_all_bbox()
-      this.show_bbox()
       currentGroup.children = {}
       currentGroup.addChild(this)
-      currentGroup.hide_bbox()
-      console.log(`你选中了${Object.keys(currentGroup.children)}`);
+      // console.log(`当前currentGroup：\n${Object.keys(currentGroup.children)}`);
     }
+    currentGroup.show_bbox()
+    currentGroup.element_b.setAttribute('pointer-events','all')
+    currentGroup.mousedown_event(e)
   }
-  static clear(){
-    Element.max_id = 0;
-    Element.list = {}
-  }
+  
   show_bbox(){
     let bbox_element = this.element_b;
     let bbox = this.element_c.getBBox();
@@ -95,49 +90,25 @@ class Point extends Element {
                             'stroke':this.edgecolor 
                           }
     )
+
+    //下面这波绑定是在用“Group”操作“Point”时snapshow()、snap()仍然及时精准响应的必要条件。
     let point = this.element_c;
     point.addEventListener("mousedown", e => {
       if(draw_select==0){
-        down_elements = true
-        moving = true
-        p2 = this;
         this.event_select(e)
       }
     })
     point.addEventListener("mousemove", e => {
-      if(moving){
-        if(e.ctrlKey){
-          snapping = true;
-          this.snapshow();
-        }else{
-          snapping = false;
-          if(id_target){
-            Point.list[id_target].color = 'black'
-            Point.list[id_target].edgecolor = 'black'
-            Point.list[id_target].update()
-            id_target = null;
-          }
-        }
+      if(draw_select==0){
+        currentGroup.mousemove_event(e)
       }
     })
     point.addEventListener("mouseup", e => {
-      if(moving){
-        down_elements = false
-        if(e.ctrlKey){
-          if(id_target){
-            this.snap()
-          }
-        }else{
-          snapping = false;
-          if(id_target){
-            Point.list[id_target].color = 'black'
-            Point.list[id_target].edgecolor = 'black'
-            Point.list[id_target].update()
-            id_target = null;
-          }
-        }
+      if(draw_select==0){
+        currentGroup.mouseup_event(e)
       }
     })
+
   }
   update(){
     let point = this.element_c;
@@ -180,7 +151,7 @@ class Point extends Element {
       }
     }
     let d_min = Math.min(...d_list)
-    if(d_min<30){
+    if(d_min<50){
       if(id_target){
         Point.list[id_target].color = 'black'
         Point.list[id_target].edgecolor = 'black'
@@ -201,6 +172,7 @@ class Point extends Element {
     }
   }
   snap(){
+    // console.log(`snap!\ntarget: Point ${id_target}`);
     let point_target = Point.list[id_target]
     this.update_loc(point_target.x,point_target.y)
     let lines_target = point_target.line
@@ -220,7 +192,14 @@ class Point extends Element {
     }
     id_target = null;
     currentGroup.update_bbox()
-    currentGroup.hide_bbox()
+    // currentGroup.hide_bbox()
+  }
+  static clear(){
+    for(let name in Point.list){
+      svg.removeChild(Point.list[name].element_g)
+    }
+    Point.max_id = 0;
+    Point.list = {}
   }
 }
 
@@ -257,19 +236,11 @@ class Line extends Element {
     this.element_c = line;
     this.element_g = group_element;
     this.parent.prepend(group_element);
-    
+    this.parent.prepend(currentGroup.element_b);
+
     line.addEventListener("mousedown", e => {
       if(draw_select==0){
-        down_elements = true
-        moving_line = true
-        line_to_move = this
-        m = oMousePosSVG(e);
-        x0 = m.x;
-        y0 = m.y;
-        p1_x0 = this.p1.x;
-        p1_y0 = this.p1.y;
-        p2_x0 = this.p2.x;
-        p2_y0 = this.p2.y;
+        // console.log(`elements.js Line mousedown`);
         this.event_select(e)
       }
     })
@@ -293,6 +264,13 @@ class Line extends Element {
   }
   setParent(new_parent){
     this.parent = new_parent
+  }
+  static clear(){
+    for(let name in Line.list){
+      svg.removeChild(Line.list[name].element_g)
+    }
+    Line.max_id = 0;
+    Line.list = {}
   }
 }
 
@@ -324,25 +302,84 @@ class Group {
     this.element_b = bbox_element;
     this.parent.appendChild(bbox_element)
     this.parent.removeChild(group)
-    console.log("bbox_element");
-    console.log(bbox_element);
 
-    this.element_b.addEventListener("mousedown", e => {
-      if(draw_select==0){
-        console.log(`正在移动：组${this.id}`);
-        down_elements = true
-        moving_group = true
-        group_to_move = this
-        m = oMousePosSVG(e);
-        x0 = m.x;
-        y0 = m.y;
-      }
-    })
+    //将事件响应函数分出去单独写，是为了让组内的元素接收到的事件也传递到这里。
+    this.element_b.addEventListener("mousedown", this.mousedown_event)
+    this.element_b.addEventListener("mousemove", this.mousemove_event)
+    this.element_b.addEventListener("mouseup", this.mouseup_event)
   }
+
+  mousedown_event = e => {
+    if(draw_select==0){
+      // console.log(`正在移动：组${this.id}`);
+      down_elements = true
+      moving_group = true
+      group_to_move = this
+      // console.log(this);
+      m = oMousePosSVG(e);
+      x0 = m.x;
+      y0 = m.y;
+    }
+  }
+
+  mousemove_event = e => {
+    if(moving_group){
+      // console.log(`elements.js mousemove`);
+      if(Object.keys(this.children).length==1 && this.children[Object.keys(this.children)[0]].constructor.name=='Point'){
+        let point = this.children[Object.keys(this.children)[0]]
+        if(e.ctrlKey){
+          snapping = true;
+          point.snapshow();
+        }else{
+          snapping = false;
+          if(id_target){
+            Point.list[id_target].color = 'black'
+            Point.list[id_target].edgecolor = 'black'
+            Point.list[id_target].update()
+            id_target = null;
+          }
+        }
+      }
+    }
+  }
+
+  mouseup_event = e => {
+    if(moving_group){
+      // console.log(`elements.js Group mouseup`);
+      if(Object.keys(this.children).length==1 && this.children[Object.keys(this.children)[0]].constructor.name=='Point'){
+        let point = this.children[Object.keys(this.children)[0]]
+        down_elements = false
+        if(e.ctrlKey){
+          if(id_target){
+            point.snap()
+          }
+        }else{
+          snapping = false;
+          if(id_target){
+            Point.list[id_target].color = 'black'
+            Point.list[id_target].edgecolor = 'black'
+            Point.list[id_target].update()
+            id_target = null;
+          }
+        }
+      }
+    }
+  }
+
   moveChildren(dx,dy){
+    let p = {}
+    let child;
     for(let name in this.children){
-      this.children[name].update_loc_inc(dx,dy)
-      this.children[name].show_bbox()
+      child = this.children[name];
+      if(child.constructor.name=="Line"){
+        p[child.p1.id]=child.p1
+        p[child.p2.id]=child.p2
+      }else if(child.constructor.name=="Point"){
+        p[child.id]=child
+      }
+    }
+    for(let i_p in p){
+      p[i_p].update_loc_inc(dx,dy)
     }
   }
   update_bbox(){
@@ -370,15 +407,23 @@ class Group {
   show_bbox(){
     let bbox_element = document.getElementById(`${this.constructor.name}${this.id}_bbox`)
     bbox_element.setAttribute('visibility','visible')
-    // console.log(`bbox_element =`);
-    // console.log(bbox_element);
+    if(Object.keys(this.children).length>1){
+      for(let i_child in this.children){
+        this.children[i_child].show_bbox()
+      }
+    }
   }
   hide_bbox(){
     let bbox_element = document.getElementById(`${this.constructor.name}${this.id}_bbox`)
     bbox_element.setAttribute('visibility','hidden')
+    if(Object.keys(this.children).length>1){
+      for(let i_child in this.children){
+        this.children[i_child].hide_bbox()
+      }
+    }
   }
-  update() {
-
+  remove(){
+    
   }
 }
 class Selection {

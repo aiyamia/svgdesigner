@@ -28,8 +28,9 @@ draw_btn.addEventListener('click', function onClick() {
 
 const clear_btn = document.getElementById('clear');
 clear_btn.addEventListener('click', function onClick() {
-  document.querySelector("#lines").innerHTML="";
   Point.clear();
+  Line.clear();
+  currentGroup.hide_bbox()
 });
 
 const undo_btn = document.getElementById('undo');

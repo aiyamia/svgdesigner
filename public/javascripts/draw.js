@@ -32,14 +32,12 @@ function union(...sets) {
 m = {};// the mouse position
 drawing = false;
 selecting = false;
-moving = false;
-moving_line = false;
 moving_group = false;
 snapping = false;
 id_target = null;
 
 var x0,y0,p1_x0,p1_y0,p2_x0,p2_y0,dx,dy;
-var line_to_move,group_to_move;
+var group_to_move;
 var select_frame_element;
 currentGroup = new Group()
 var down_elements;
@@ -70,6 +68,7 @@ lines.addEventListener("mousedown", e => {
     l = new Line({p1:p1,p2:p2},lines)
     drawing = true
   }else if(draw_select==0){
+    // console.log(`draw.js mousedown`);
     if(!down_elements){
       hide_all_bbox()
       currentGroup.children = {}
@@ -77,6 +76,7 @@ lines.addEventListener("mousedown", e => {
       m = oMousePosSVG(e);
       x0 = m.x
       y0 = m.y
+      currentGroup.element_b.setAttribute('pointer-events','initial')
     }
   }
 });
@@ -95,44 +95,26 @@ lines.addEventListener("mousemove", e => {
     select_frame_element.setAttribute('height', Math.abs(m.y-y0));
     select_frame_element.setAttribute('visibility', 'visible');
   }
-  if (moving) {
-    m = oMousePosSVG(e)
-    p2.update_loc(m.x,m.y)
-    currentGroup.update_bbox()
-    currentGroup.hide_bbox()
-  }
-  if(moving_line){
-    m = oMousePosSVG(e);
-    dx = m.x - x0
-    dy = m.y - y0
-    line_to_move.p1.update_loc(p1_x0 + dx,p1_y0 + dy)
-    line_to_move.p2.update_loc(p2_x0 + dx,p2_y0 + dy)
-    line_to_move.show_bbox()
-    currentGroup.update_bbox()
-    currentGroup.hide_bbox()
-  }
   if(moving_group){
     m = oMousePosSVG(e);
     dx = m.x - x0
     dy = m.y - y0
     x0 = m.x
     y0 = m.y
-    // console.log(`x0=${x0};y0=${y0}`);
     group_to_move.moveChildren(dx,dy)
     group_to_move.update_bbox()
+    group_to_move.show_bbox()//保证线也全显示选框
   }
 });
 // on mouse up or mouse out the line ends here and you "empty" the eLine and oLine to be able to draw a new line
 lines.addEventListener("mouseup", e => {
+  
   down_elements = false
-  if (drawing || moving) {
+  if (drawing) {
     drawing = false;
-    moving = false;
   }
-  if(moving_line){
-    moving_line = false
-  }
-  if(moving_group){
+  if (moving_group) {
+    // console.log(`draw.js  mouseup`);
     moving_group = false;
   }
   if(selecting){
@@ -140,18 +122,22 @@ lines.addEventListener("mouseup", e => {
     selecting = false;
     select_frame_element.setAttribute('visibility', 'hidden');
     for(let i_p in Point.list){
-      p = Point.list[i_p]
+      let p = Point.list[i_p]
       if((p.x-x0)*(p.x-m.x)<0 && (p.y-y0)*(p.y-m.y)<0){
-        console.log(`Point${p.id}`);
-        p.show_bbox()
         currentGroup.addChild(p)
-        currentGroup.hide_bbox()
+      }
+    }
+    for(let i_l in Line.list){
+      let l = Line.list[i_l]
+      if((l.p1.x-x0)*(l.p1.x-m.x)<0 && (l.p1.y-y0)*(l.p1.y-m.y)<0 && (l.p2.x-x0)*(l.p2.x-m.x)<0 && (l.p2.y-y0)*(l.p2.y-m.y)<0){
+        currentGroup.addChild(l)
       }
     }
     let selected_item = Object.keys(currentGroup.children)
     if(selected_item.length!=0){
       currentGroup.show_bbox()
-      console.log(`你选中了${selected_item}`);
+      // console.log(`你选中了${selected_item}`);
+      currentGroup.element_b.setAttribute('pointer-events','all')
     }
   }
 });
