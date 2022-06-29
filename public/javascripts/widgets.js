@@ -31,6 +31,7 @@ clear_btn.addEventListener('click', function onClick() {
   Point.clear();
   Line.clear();
   Group.clear();
+  Bezier.clear();
 });
 
 const undo_btn = document.getElementById('undo');
