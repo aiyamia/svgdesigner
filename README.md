@@ -3,7 +3,7 @@ web版svg矢量图制作GUI
 
 <div style='display:flex'>
 <img src="./README_assets/GIF%202022-6-25%20下午%2011-59-59.gif" alt="drawing" width="300"/>
-<img src="./README_assets/GIF%202022-6-28%20上午%2011-43-39.gif" alt="drawing" width="300"/>
+<img src="./README_assets/GIF%202022-6-28%20下午%2010-08-49.gif" alt="drawing" width="300"/>
 </div>
 
 ## 开始使用
