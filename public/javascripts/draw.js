@@ -38,8 +38,9 @@ id_target = null;
 
 var x0,y0,p1_x0,p1_y0,p2_x0,p2_y0,dx,dy;
 var group_to_move;
-var select_frame_element;
+var select_frame_element,groupRotPoint;
 currentGroup = new Group()
+groupRotPoint = new Point({x:100,y:100,color:'orange',size:10})
 var down_elements;
 var l;
 select_frame_element=document.createElementNS(SVG_NS,'rect')
@@ -91,7 +92,7 @@ lines.addEventListener("mousedown", e => {
 lines.addEventListener("mousemove", e => {
   if (drawing) {
     m = oMousePosSVG(e);
-    p2.update_loc(m.x,m.y)
+    p2.moveTo(m.x,m.y)
   }
   if (selecting) {
     m = oMousePosSVG(e);
@@ -102,12 +103,28 @@ lines.addEventListener("mousemove", e => {
     select_frame_element.setAttribute('visibility', 'visible');
   }
   if(moving_group){
-    m = oMousePosSVG(e);
-    dx = m.x - x0
-    dy = m.y - y0
-    x0 = m.x
-    y0 = m.y
-    group_to_move.moveChildren(dx,dy)
+    if(e.altKey){
+      //旋转
+      m = oMousePosSVG(e);
+      let lx = m.x - groupRotPoint.x
+      let ly = m.y - groupRotPoint.y
+      let theta_in_deg = Math.atan2(ly,lx) * (180/Math.PI)
+      let lx0 = x0 - groupRotPoint.x
+      let ly0 = y0 - groupRotPoint.y
+      let theta0_in_deg = Math.atan2(ly0,lx0) * (180/Math.PI)
+      let dtheta_in_deg = theta_in_deg - theta0_in_deg;
+
+      group_to_move.rotChildren(dtheta_in_deg)
+      x0 = m.x
+      y0 = m.y
+    }else{
+      m = oMousePosSVG(e);
+      dx = m.x - x0
+      dy = m.y - y0
+      x0 = m.x
+      y0 = m.y
+      group_to_move.moveChildren(dx,dy)
+    }
     group_to_move.update_bbox()
     group_to_move.show_bbox()//保证线也全显示选框
   }
@@ -182,7 +199,7 @@ function generateBboxElement(element){
   rectBBox.setAttribute("fill","none");
   rectBBox.setAttribute("stroke-dasharray","2,2");
   let bbox = element.getBBox();
-  let pad = 5
+  let pad = 10
   let w =  2*pad+bbox.width
   let h =  2*pad+bbox.height
   rectBBox.setAttribute('x', bbox.x-pad);
@@ -193,9 +210,10 @@ function generateBboxElement(element){
   rectBBox.setAttribute('visibility', 'hidden');
   return rectBBox
 }
+
 function updateBboxElement(rectBBox,element){
   let bbox = element.getBBox();
-  let pad = 5
+  let pad = 10
   let w =  2*pad+bbox.width
   let h =  2*pad+bbox.height
   rectBBox.setAttribute('x', bbox.x-pad);

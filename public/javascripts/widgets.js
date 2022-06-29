@@ -40,8 +40,6 @@ undo_btn.addEventListener('click', function onClick() {
 });
 
 
-
-
 document.querySelector('#download')
 .addEventListener('click', function onClick() {
   svgExport.downloadSvg(

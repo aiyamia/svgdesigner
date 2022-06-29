@@ -90,7 +90,6 @@ class Point extends Element {
         currentGroup.mouseup_event(e)
       }
     })
-
   }
   update(){
     let point = this.element_c;
@@ -99,7 +98,7 @@ class Point extends Element {
     point.setAttribute('stroke-width', this.edgewidth);
     point.setAttribute('stroke', this.edgecolor);
   }
-  update_loc(x,y) {
+  moveTo(x,y) {
     let point_g = this.element_c.parentNode;
     point_g.setAttribute('transform', `translate(${x},${y})`)
     
@@ -109,10 +108,24 @@ class Point extends Element {
       this.line[i_line].update()
     }
   }
-  update_loc_inc(dx,dy) {
+  move(dx,dy) {
     let point_g = this.element_c.parentNode;
     this.x += dx
     this.y += dy
+    point_g.setAttribute('transform', `translate(${this.x},${this.y})`)
+    for(let i_line in this.line){
+      this.line[i_line].update()
+    }
+  }
+  rot(dtheta_in_deg) {
+    let dtheta_in_rad = dtheta_in_deg * (Math.PI/180);
+    let point_g = this.element_c.parentNode;
+    let rho = Math.hypot(this.x-groupRotPoint.x,this.y-groupRotPoint.y)
+    let theta0_in_rad = Math.atan2(this.y-groupRotPoint.y,this.x-groupRotPoint.x)
+    let theta_in_rad = theta0_in_rad + dtheta_in_rad
+
+    this.x = groupRotPoint.x + rho * Math.cos(theta_in_rad);
+    this.y = groupRotPoint.y + rho * Math.sin(theta_in_rad);
     point_g.setAttribute('transform', `translate(${this.x},${this.y})`)
     for(let i_line in this.line){
       this.line[i_line].update()
@@ -124,7 +137,7 @@ class Point extends Element {
     let d,dx,dy;
     for(let i_comp in Point.list){
       let point_to_compare = Point.list[i_comp]
-      if(point_to_compare.id != this.id){
+      if(![this.id,groupRotPoint.id].includes(point_to_compare.id)){
         dx = point_to_compare.x - this.x
         dy = point_to_compare.y - this.y
         d = Math.hypot(dx,dy)
@@ -156,33 +169,39 @@ class Point extends Element {
   snap(){
     // console.log(`snap!\ntarget: Point ${id_target}`);
     let point_target = Point.list[id_target]
-    this.update_loc(point_target.x,point_target.y)
+    this.moveTo(point_target.x,point_target.y)
 
-    let lines_target = point_target.line
-    let beziers_target = point_target.bezier
-    point_target = this;
-    Point.list[id_target].element_g.remove()
-    delete Point.list[id_target]
+    if(this.id!=groupRotPoint.id){
+      let lines_target = point_target.line
+      let beziers_target = point_target.bezier
+      point_target = this;
+      Point.list[id_target].element_g.remove()
+      delete Point.list[id_target]
+  
+      svg.appendChild(this.element_g); //使其位于（仅次于groupRotPoint的）最前
+      svg.appendChild(groupRotPoint.element_g)
 
-    svg.appendChild(this.element_g); //使其位于最前
-
-    point_target.line = {...point_target.line,...lines_target}
-    point_target.bezier = {...point_target.bezier,...beziers_target}
-    for(let i_line in lines_target){
-      if(lines_target[i_line].p1.id==id_target){
-        lines_target[i_line].p1 = this
-      }else{
-        lines_target[i_line].p2 = this
+      point_target.line = {...point_target.line,...lines_target}
+      point_target.bezier = {...point_target.bezier,...beziers_target}
+      for(let i_line in lines_target){
+        if(lines_target[i_line].p1.id==id_target){
+          lines_target[i_line].p1 = this
+        }else{
+          lines_target[i_line].p2 = this
+        }
       }
+      for(let i_bezier in beziers_target){
+        let this_bezier = beziers_target[i_bezier]
+        this_bezier.p1 = this_bezier.line1.p1;
+        this_bezier.p2 = this_bezier.line1.p2;
+        this_bezier.p3 = this_bezier.line2.p2;
+        this_bezier.p4 = this_bezier.line2.p1;
+      }
+    }else{
+      point_target.color = 'black'
+      point_target.edgecolor = 'black'
+      point_target.update()
     }
-    for(let i_bezier in beziers_target){
-      let this_bezier = beziers_target[i_bezier]
-      this_bezier.p1 = this_bezier.line1.p1;
-      this_bezier.p2 = this_bezier.line1.p2;
-      this_bezier.p3 = this_bezier.line2.p2;
-      this_bezier.p4 = this_bezier.line2.p1;
-    }
-    
     id_target = null;
     currentGroup.update_bbox()
     // currentGroup.hide_bbox()
@@ -193,6 +212,7 @@ class Point extends Element {
     }
     Point.max_id = 0;
     Point.list = {}
+    groupRotPoint = new Point({x:100,y:100,color:'orange',size:10})
   }
 }
 
@@ -255,9 +275,9 @@ class Line extends Element {
     }
     this.update_bbox()
   }
-  update_loc_inc(dx,dy) {
-    this.p1.update_loc_inc(dx,dy)
-    this.p2.update_loc_inc(dx,dy)
+  move(dx,dy) {
+    this.p1.move(dx,dy)
+    this.p2.move(dx,dy)
   }
   update_bbox(){
     updateBboxElement(this.element_b,this.element_c)
@@ -271,8 +291,6 @@ class Line extends Element {
     Line.list = {}
   }
 }
-
-
 
 class Group {
   static max_id = 0;
@@ -327,21 +345,16 @@ class Group {
           this.addChild(this_target)
         }else{
           if(this_target.id!=this.id){
-            console.log(`这是个和当前组不一样的Group`);
+            // console.log(`这是个和当前组不一样的Group`);
             this.children = {}
             this.addChild(this_target)
-            console.log(this);
+            // console.log(this);
           }
         }
         // console.log(`当前组内成员：\n${Object.keys(this.children)}`);
       }
       this.show_bbox()
       
-      console.log(`this`);
-      console.log(this);
-      console.log(`this.element_b`);
-      console.log(this.element_b);
-      console.log(`('pointer-events','all')`);
       this.element_b.setAttribute('pointer-events','all')
       
       // console.log(`将移动：组${this.id}`);
@@ -418,10 +431,34 @@ class Group {
       }
     }
     for(let i_p in p){
-      p[i_p].update_loc_inc(dx,dy)
+      p[i_p].move(dx,dy)
+    }
+  }
+  rotChildren(dtheta){
+    let p = {}
+    let child;
+    for(let name in this.children){
+      child = this.children[name];
+      if(child.constructor.name=="Line"){
+        p[child.p1.id]=child.p1
+        p[child.p2.id]=child.p2
+      }else if(child.constructor.name=="Point"){
+        p[child.id]=child
+      }else if(child.constructor.name=="Bezier"){
+        p[child.p1.id]=child.p1
+        p[child.p2.id]=child.p2
+        p[child.p3.id]=child.p3
+        p[child.p4.id]=child.p4
+      }else if(child.constructor.name=="Group"){
+        child.rotChildren(dtheta)
+      }
+    }
+    for(let i_p in p){
+      p[i_p].rot(dtheta)
     }
   }
   update_bbox(recursive=true){
+    // console.log(recursive);
     let group = document.createElementNS(SVG_NS, "g");
     group.setAttribute('id','tmp')
     
@@ -453,7 +490,6 @@ class Group {
       }
     }
   }
-
   addChild(obj){
     this.children[`${obj.constructor.name}${obj.id}`]=obj
     this.update_bbox()
@@ -571,94 +607,21 @@ class Bezier extends Element {
     bezier.setAttribute('fill', "transparent");
     this.update_bbox()
   }
-  update_loc_inc(dx,dy) {
-    this.p1.update_loc_inc(dx,dy)
-    this.p2.update_loc_inc(dx,dy)
-    this.p3.update_loc_inc(dx,dy)
-    this.p4.update_loc_inc(dx,dy)
+  move(dx,dy) {
+    this.p1.move(dx,dy)
+    this.p2.move(dx,dy)
+    this.p3.move(dx,dy)
+    this.p4.move(dx,dy)
   }
   update_bbox(){
     updateBboxElement(this.element_b,this.element_c)
     this.hide_bbox()    
   }
+  static clear(){
+    for(let name in Bezier.list){
+      svg.removeChild(Bezier.list[name].element_g)
+    }
+    Bezier.max_id = 0;
+    Bezier.list = {}
+  }
 }
-
-// class Bezier extends Element {
-//   static max_id = 0;
-//   static list = {}
-  
-//   constructor(obj) {
-//     super();
-//     this.id = ++Bezier.max_id;
-//     Bezier.list[this.id] = this;
-//     this.line1 = obj.line1
-//     this.line2 = obj.line2
-//     this.line1.bezier[this.id] = this
-//     this.line2.bezier[this.id] = this
-
-//     this.p1 = this.line1.p1;
-//     this.p2 = this.line1.p2;
-//     this.p3 = this.line2.p2;
-//     this.p4 = this.line2.p1;
-//     this.width = obj.width || 2;
-//     this.color = obj.color || 'red';
-
-//     this.bezier_group = new Group()
-//     this.bezier_group.addChild(this.line1)
-//     this.bezier_group.addChild(this.line2)
-    
-//     let group_element = document.createElementNS(SVG_NS, "g");
-//     group_element.setAttribute('id', `${this.constructor.name}${this.id}`);
-//     let bezier = document.createElementNS(SVG_NS, "path");
-//     bezier.setAttribute('d', 
-//     `M ${this.p1.x} ${this.p1.y} C ${this.p2.x} ${this.p2.y}, 
-//     ${this.p3.x} ${this.p3.y}, ${this.p4.x} ${this.p4.y}`);
-//     bezier.setAttribute('stroke-width', this.width);
-//     bezier.setAttribute('stroke', this.color);
-//     bezier.setAttribute('fill', "transparent");
-//     this.element_c = bezier
-    
-//     let bbox_element = generateBboxElement(bezier)
-//     bbox_element.setAttribute('id', `${this.constructor.name}${this.id}_bbox`);
-//     bbox_element.setAttribute('class', `bbox`);
-//     group_element.appendChild(bezier)
-//     group_element.appendChild(bbox_element)
-    
-//     this.element_b = bbox_element;
-//     this.element_g = group_element;
-    
-//     svg.prepend(group_element);
-
-//     for(let i_g in Group.list){
-//       svg.prepend(Group.list[i_g].element_b)
-//     }
-//     this.bezier_group.addChild(this)
-//     bezier.myObj = this;
-//     bezier.addEventListener("mousedown", e => {
-//       if(draw_select==0){
-//         currentGroup.mousedown_event(e)
-//       }
-//     })
-//   }
-//   update() {
-//     let bezier = this.element_c;
-//     bezier.setAttribute('d', `M ${this.p1.x} ${this.p1.y} C ${this.p2.x} ${this.p2.y}, 
-//     ${this.p3.x} ${this.p3.y}, ${this.p4.x} ${this.p4.y}`);
-//     bezier.setAttribute('stroke-width', this.width);
-//     bezier.setAttribute('stroke', this.color);
-//     bezier.setAttribute('fill', "transparent");
-//     this.bezier_group.update_bbox()
-//   }
-//   static clear(){
-//     for(let name in Bezier.list){
-//       svg.removeChild(Bezier.list[name].element_g)
-//     }
-//     Bezier.max_id = 0;
-//     Bezier.list = {}
-//   }
-//   update_bbox(){
-//     updateBboxElement(this.element_b,this.element_c)
-//     this.hide_bbox()    
-//   }
-// }
-
