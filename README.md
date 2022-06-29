@@ -7,11 +7,24 @@ web版svg矢量图制作GUI
 </div>
 
 ## 开始使用
-在项目目录下打开命令行，运行：
+本项目基于nodejs，首先要有nodejs。
+
+在项目目录下打开命令行，运行如下命令安装所需的npm包。
 ```cmd
 npm install
 ```
-包安装完毕后，运行
+
+在bin/www文件中
+```js
+var port = normalizePort(process.env.PORT || '3000');
+```
+处配置端口，比如`3000`。
+
+运行以下命令开服。
 ```cmd
 npm start
 ```
+
+在浏览器端访问（当端口为`3000`时）：
+http://127.0.0.1:3000/
+
