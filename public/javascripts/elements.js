@@ -51,6 +51,7 @@ class Point extends Element {
   static list = {}
   line={};
   bezier={};
+  groupRotSnapPoint;
   constructor(obj,parent=svg) {
     super();
     this.id = ++Point.max_id;
@@ -71,6 +72,10 @@ class Point extends Element {
                             'stroke':this.edgecolor 
                           }
     )
+
+    if(groupRotPoint){
+      svg.appendChild(groupRotPoint.element_g)
+    }
 
     //下面这波绑定是在用“Group”操作“Point”时snapshow()、snap()仍然及时精准响应的必要条件。
     let point = this.element_c;
@@ -118,11 +123,10 @@ class Point extends Element {
     }
   }
   rot(dtheta_in_deg) {
-    let dtheta_in_rad = dtheta_in_deg * (Math.PI/180);
     let point_g = this.element_c.parentNode;
     let rho = Math.hypot(this.x-groupRotPoint.x,this.y-groupRotPoint.y)
     let theta0_in_rad = Math.atan2(this.y-groupRotPoint.y,this.x-groupRotPoint.x)
-    let theta_in_rad = theta0_in_rad + dtheta_in_rad
+    let theta_in_rad = theta0_in_rad + dtheta_in_deg * (Math.PI/180)
 
     this.x = groupRotPoint.x + rho * Math.cos(theta_in_rad);
     this.y = groupRotPoint.y + rho * Math.sin(theta_in_rad);
@@ -177,6 +181,12 @@ class Point extends Element {
       point_target = this;
       Point.list[id_target].element_g.remove()
       delete Point.list[id_target]
+
+      if(groupRotPoint.groupRotSnapPoint){
+        if(groupRotPoint.groupRotSnapPoint.id == id_target){
+          groupRotPoint.groupRotSnapPoint = this
+        }
+      }
   
       svg.appendChild(this.element_g); //使其位于（仅次于groupRotPoint的）最前
       svg.appendChild(groupRotPoint.element_g)
@@ -198,6 +208,7 @@ class Point extends Element {
         this_bezier.p4 = this_bezier.line2.p1;
       }
     }else{
+      groupRotPoint.groupRotSnapPoint = point_target
       point_target.color = 'black'
       point_target.edgecolor = 'black'
       point_target.update()
@@ -234,6 +245,8 @@ class Line extends Element {
     this.width = obj.width || 2;
     this.color = obj.color || 'red';
     
+    this.angle_in_deg = Math.atan2(this.p2.y-this.p1.y,this.p2.x-this.p1.x) * (180/Math.PI)
+
     let group_element = document.createElementNS(SVG_NS, "g");
     group_element.setAttribute('id', `${this.constructor.name}${this.id}`);
     let line = document.createElementNS(SVG_NS, "path");
@@ -263,6 +276,7 @@ class Line extends Element {
     })
   }
   update() {
+    this.angle_in_deg = Math.atan2(this.p2.y-this.p1.y,this.p2.x-this.p1.x) * (180/Math.PI)
     let line = this.element_c;
     line.setAttribute('d', `M ${this.p1.x} ${this.p1.y} L ${this.p2.x} ${this.p2.y}`);
     line.setAttribute('stroke-width', this.width);
@@ -434,7 +448,7 @@ class Group {
       p[i_p].move(dx,dy)
     }
   }
-  rotChildren(dtheta){
+  rotChildren(dtheta_in_deg){
     let p = {}
     let child;
     for(let name in this.children){
@@ -450,11 +464,11 @@ class Group {
         p[child.p3.id]=child.p3
         p[child.p4.id]=child.p4
       }else if(child.constructor.name=="Group"){
-        child.rotChildren(dtheta)
+        child.rotChildren(dtheta_in_deg)
       }
     }
     for(let i_p in p){
-      p[i_p].rot(dtheta)
+      p[i_p].rot(dtheta_in_deg)
     }
   }
   update_bbox(recursive=true){
@@ -523,6 +537,38 @@ class Group {
         this.children[i_child].hide_bbox()
       }
     }
+  }
+
+  contains(obj){
+    let group_child = []
+    let line_child = []
+    let obj_type_id = `${obj.constructor.name}${obj.id}`
+    for(let i_child in this.children){
+      let child = this.children[i_child]
+      let type = child.constructor.name
+      if(obj_type_id == `${type}${child.id}`){
+        return true
+      }
+      if(type == "Group"){
+        group_child.push(child)
+      }
+      if(type == "Line"){
+        line_child.push(child)
+      }
+    }
+    for(let i_child in group_child){
+      if(group_child[i_child].contains(obj)){
+        return true
+      }
+    }
+    if(obj.constructor.name=="Point"){
+      for(let i_child in line_child){
+        if(line_child[i_child].p1.id == obj.id || line_child[i_child].p2.id == obj.id){
+          return true
+        }
+      }
+    }
+    return false
   }
   remove(){
     

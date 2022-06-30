@@ -1,5 +1,10 @@
 const SVG_NS = "http://www.w3.org/2000/svg";
 let svg = document.querySelector("#lines");
+var svg_rect = svg.getBoundingClientRect();
+//下方两个相等由svg的css中设置box-sizing: border-box保证，
+//参见https://developer.mozilla.org/en-US/docs/Web/API/Element/getBoundingClientRect
+var svg_width = svg_rect.width; 
+var svg_height = svg_rect.height; 
 var defs = document.createElementNS(SVG_NS, "defs");
 let glow_filter = document.createElementNS(SVG_NS, "filter");
 glow_filter.setAttribute('id', 'glow');
@@ -33,14 +38,29 @@ m = {};// the mouse position
 drawing = false;
 selecting = false;
 moving_group = false;
+rotting_group = false;
 snapping = false;
 id_target = null;
 
 var x0,y0,p1_x0,p1_y0,p2_x0,p2_y0,dx,dy;
 var group_to_move;
-var select_frame_element,groupRotPoint;
+var select_frame_element;
+var groupRotPoint;
+var snap_angles_in_deg=new Set([]);
+var snap_angle_in_deg;
+var err_range_angles_in_deg = 10;
 currentGroup = new Group()
 groupRotPoint = new Point({x:100,y:100,color:'orange',size:10})
+var rot_relevent_lines_in_group={};
+var info_line = document.createElementNS(SVG_NS, "path");
+info_line.setAttribute('d', `M 0 0 L 500 500`);
+info_line.setAttribute('stroke-width', '1');
+info_line.setAttribute("stroke-dasharray","2,2");
+info_line.setAttribute('stroke', 'green');
+info_line.setAttribute('fill', "transparent");
+
+var dtheta_in_deg_to_snap = null;
+
 var down_elements;
 var l;
 select_frame_element=document.createElementNS(SVG_NS,'rect')
@@ -83,7 +103,26 @@ lines.addEventListener("mousedown", e => {
       m = oMousePosSVG(e);
       x0 = m.x
       y0 = m.y
+
       currentGroup.element_b.setAttribute('pointer-events','initial')
+    }else{
+      if(e.altKey && groupRotPoint.groupRotSnapPoint){
+        // degree_cum = 0
+        snap_angles_in_deg.clear();
+        rot_relevent_lines_in_group = {};
+        let rot_relevent_lines = groupRotPoint.groupRotSnapPoint.line
+        
+        for (let i_line in rot_relevent_lines){
+          let rot_relevent_line = rot_relevent_lines[i_line];
+          if(!(group_to_move.contains(rot_relevent_line))){
+            
+            snap_angles_in_deg.add(rot_relevent_line.angle_in_deg)
+
+          }else{
+            rot_relevent_lines_in_group[i_line] = rot_relevent_line;
+          }
+        }
+      }
     }
   }
 });
@@ -114,10 +153,74 @@ lines.addEventListener("mousemove", e => {
       let theta0_in_deg = Math.atan2(ly0,lx0) * (180/Math.PI)
       let dtheta_in_deg = theta_in_deg - theta0_in_deg;
 
-      group_to_move.rotChildren(dtheta_in_deg)
+      
       x0 = m.x
       y0 = m.y
+
+      if(groupRotPoint.groupRotSnapPoint){
+        snap_angles_in_deg_array = Array.from(snap_angles_in_deg)
+        let stop_loop = false
+        for(let i_line in rot_relevent_lines_in_group){
+          let rot_relevent_line_in_group = rot_relevent_lines_in_group[i_line];
+          for(let i_angle in snap_angles_in_deg_array){
+            snap_angle_in_deg = snap_angles_in_deg_array[i_angle];
+            let dtheta1_in_deg_for_judge = snap_angle_in_deg - rot_relevent_line_in_group.angle_in_deg
+            let dtheta2_in_deg_for_judge = Math.abs(rot_relevent_line_in_group.angle_in_deg - snap_angle_in_deg)-180
+            let condition1 = Math.abs(dtheta1_in_deg_for_judge) < err_range_angles_in_deg
+            let condition2 = Math.abs(dtheta2_in_deg_for_judge) < err_range_angles_in_deg
+            
+            if( condition1 || condition2){
+              dtheta_in_deg_to_snap = condition1 ? dtheta1_in_deg_for_judge : dtheta2_in_deg_for_judge
+
+              info_line.setAttribute('d',
+              `M 
+              0 
+              ${groupRotPoint.y - groupRotPoint.x * Math.tan(snap_angle_in_deg * (Math.PI/180))} 
+              L 
+              ${svg_width} 
+              ${groupRotPoint.y + (svg_width - groupRotPoint.x) * Math.tan(snap_angle_in_deg * (Math.PI/180))}`)
+              
+              svg.prepend(info_line)
+              info_line.setAttribute('visibility','visible')
+
+              stop_loop = true;
+              break;
+            }else{
+              info_line.setAttribute('visibility','hidden')
+              dtheta_in_deg_to_snap = null
+            }
+          }
+          
+          if(stop_loop){
+            break;
+          }
+        }
+      }
+      // degree_cum += dtheta_in_deg
+      
+      // if(dtheta_in_deg_to_snap){
+      //   snap_degree_cum += dtheta_in_deg
+      //   console.log(`snap_degree_cum：${snap_degree_cum}`);
+      //   if(Math.abs(snap_degree_cum)>1){
+      //     group_to_move.rotChildren(dtheta_in_deg)
+      //     console.log(`动！`);
+      //   }else{
+      //     console.log(`不动`);
+      //   }
+      // }else{
+      //   snap_degree_cum = 0
+        
+      // }
+      group_to_move.rotChildren(dtheta_in_deg)
     }else{
+      if(groupRotPoint.groupRotSnapPoint){
+        // console.log(`groupRotPoint.groupRotSnapPoint`);
+        if(group_to_move.contains(groupRotPoint.groupRotSnapPoint)||group_to_move.contains(groupRotPoint)){
+          // console.log(`动了`);
+          groupRotPoint.groupRotSnapPoint = null
+        }
+      }
+      
       m = oMousePosSVG(e);
       dx = m.x - x0
       dy = m.y - y0
@@ -138,6 +241,18 @@ lines.addEventListener("mouseup", e => {
   }
   if (moving_group) {
     // console.log(`draw.js  mouseup`);
+    if(e.altKey && groupRotPoint.groupRotSnapPoint){
+      if(dtheta_in_deg_to_snap){
+        // console.log(`snap啦！自动吸附${dtheta_in_deg_to_snap}°`);
+        if(e.shiftKey){
+          group_to_move.rotChildren(dtheta_in_deg_to_snap)
+          group_to_move.update_bbox()
+          group_to_move.show_bbox()//保证线也全显示选框
+        }
+        info_line.setAttribute('visibility','hidden')
+        dtheta_in_deg_to_snap = null;
+      }
+    }
     moving_group = false;
   }
   if(selecting){
@@ -146,8 +261,10 @@ lines.addEventListener("mouseup", e => {
     select_frame_element.setAttribute('visibility', 'hidden');
     for(let i_p in Point.list){
       let p = Point.list[i_p]
-      if((p.x-x0)*(p.x-m.x)<0 && (p.y-y0)*(p.y-m.y)<0){
-        currentGroup.addChild(p)
+      if(p.id != groupRotPoint.id){
+        if((p.x-x0)*(p.x-m.x)<0 && (p.y-y0)*(p.y-m.y)<0){
+          currentGroup.addChild(p)
+        }
       }
     }
     for(let i_l in Line.list){
