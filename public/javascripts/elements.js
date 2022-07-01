@@ -32,9 +32,6 @@ class Element {
   
 
   show_bbox(){
-    for(let i_widget in this.control_widgets){
-      this.control_widgets[i_widget].element_g.setAttribute('visibility','visible')
-    }
     let bbox_element = this.element_b;
     let bbox = this.element_c.getBBox();
     let pad = 5
@@ -47,10 +44,17 @@ class Element {
     bbox_element.setAttribute('visibility','visible')
   }
   hide_bbox(){
+    this.element_b.setAttribute('visibility','hidden')
+  }
+  hide_control_widgets(){
     for(let i_widget in this.control_widgets){
       this.control_widgets[i_widget].element_g.setAttribute('visibility','hidden')
     }
-    this.element_b.setAttribute('visibility','hidden')
+  }
+  show_control_widgets(){
+    for(let i_widget in this.control_widgets){
+      this.control_widgets[i_widget].element_g.setAttribute('visibility','visible')
+    }
   }
 }
 
@@ -210,7 +214,7 @@ class Point extends Element {
         }
       }
       for(let i_bezier in beziers_target){
-        let this_bezier = beziers_target[i_bezier]
+        let this_bezier = beziers_target[i_bezier].bezier
         this_bezier.p1 = this_bezier.line1.p1;
         this_bezier.p2 = this_bezier.line1.p2;
         this_bezier.p3 = this_bezier.line2.p2;
@@ -294,7 +298,7 @@ class Line extends Element {
     line.setAttribute('fill', "transparent");
     if(Object.keys(this.bezier).length!=0){
       for (let i_be in this.bezier){
-        this.bezier[i_be].update();
+        this.bezier[i_be].bezier.update();
       }
     }
     this.update_bbox()
@@ -305,7 +309,7 @@ class Line extends Element {
   }
   update_bbox(){
     updateBboxElement(this.element_b,this.element_c)
-    this.hide_bbox()    
+    this.hide_bbox()
   }
   static clear(){
     for(let name in Line.list){
@@ -326,6 +330,7 @@ class Group {
     Group.list[this.id] = this;
     this.type_id = `${this.constructor.name}${this.id}`;
 
+    this.bezier = null;
     this.children = {}
     this.parentGroup = {}
     
@@ -359,6 +364,9 @@ class Group {
       down_elements = true
       hide_all_bbox()
       info_line.setAttribute('visibility','hidden')
+
+     
+      
       if(e.ctrlKey){
         if(Object.keys(currentGroup.children).includes(`${this_target.constructor.name}${this_target.id}`)){
           currentGroup.removeChild(this_target)
@@ -369,11 +377,32 @@ class Group {
         }
       }else{
         if(this_target.constructor.name!="Group"){
+          if(Object.keys(this_target.bezier).length!=0){
+            for(let i_b in this_target.bezier){
+              let this_b = this_target.bezier[i_b]
+              this_b.bezier.show_control_widgets()
+            }
+          }else{
+            if(Object.keys(currentGroup.children).length==1 && currentGroup.children[Object.keys(currentGroup.children)[0]].constructor.name=="Group"){
+              if(currentGroup.children[Object.keys(currentGroup.children)[0]].bezier){
+                currentGroup.children[Object.keys(currentGroup.children)[0]].bezier.hide_control_widgets()
+              }
+            }
+            this_target.show_control_widgets()
+          }
           currentGroup.children = {}
           currentGroup.addChild(this_target)
         }else{
           if(this_target.id!=currentGroup.id){
             // console.log(`这是个和当前组不一样的Group`);
+            if(Object.keys(currentGroup.children).length==1 && currentGroup.children[Object.keys(currentGroup.children)[0]].constructor.name=="Group"){
+              if(currentGroup.children[Object.keys(currentGroup.children)[0]].bezier){
+                currentGroup.children[Object.keys(currentGroup.children)[0]].bezier.hide_control_widgets()
+              }
+            }
+            if(this_target.bezier){
+              this_target.bezier.show_control_widgets()
+            }
             currentGroup.children = {}
             currentGroup.addChild(this_target)
             // console.log(this);
@@ -658,10 +687,7 @@ class Bezier extends Element {
     this.line2 = obj.line2
     this.line1.bezier[this.id] = this
     this.line2.bezier[this.id] = this
-    this.line1.p1.bezier[this.id] = this
-    this.line1.p2.bezier[this.id] = this
-    this.line2.p1.bezier[this.id] = this
-    this.line2.p2.bezier[this.id] = this
+
 
     this.p1 = obj.line1.p1;
     this.p2 = obj.line1.p2;
@@ -702,10 +728,18 @@ class Bezier extends Element {
     }
 
     let bG = new Group()
+    bG.bezier = this
     bG.addChild(this.line1)
     bG.addChild(this.line2)
     bG.addChild(this)
     this.parentGroup = bG
+
+    this.line1.p1.bezier[this.id] = this.parentGroup
+    this.line1.p2.bezier[this.id] = this.parentGroup
+    this.line2.p1.bezier[this.id] = this.parentGroup
+    this.line2.p2.bezier[this.id] = this.parentGroup
+    this.line1.bezier[this.id] = this.parentGroup
+    this.line2.bezier[this.id] = this.parentGroup
 
     bezier.myObj = this.parentGroup;
     bezier.addEventListener("mousedown", e => {
@@ -731,7 +765,7 @@ class Bezier extends Element {
   }
   update_bbox(){
     updateBboxElement(this.element_b,this.element_c)
-    this.hide_bbox()    
+    this.hide_bbox()
   }
   static clear(){
     for(let name in Bezier.list){

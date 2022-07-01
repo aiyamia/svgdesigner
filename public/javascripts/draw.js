@@ -99,6 +99,11 @@ lines.addEventListener("mousedown", e => {
     // console.log(`draw.js mousedown`);
     if(!down_elements){
       hide_all_bbox()
+      if(Object.keys(currentGroup.children).length==1 && currentGroup.children[Object.keys(currentGroup.children)[0]].constructor.name=="Group"){
+        if(currentGroup.children[Object.keys(currentGroup.children)[0]].bezier){
+          currentGroup.children[Object.keys(currentGroup.children)[0]].bezier.hide_control_widgets()
+        }
+      }
       currentGroup.children = {}
       selecting = true
       m = oMousePosSVG(e);
