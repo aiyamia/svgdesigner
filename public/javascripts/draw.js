@@ -295,7 +295,24 @@ document.addEventListener("keydown", e => {
     currentGroup.delete()
   }
   if (e.ctrlKey || e.metaKey) {
-    switch (e.key.toLowerCase()) {
+    
+    if(e.shiftKey){
+      switch (e.key.toLowerCase()) {
+        case 's':
+            e.preventDefault();
+            alert('ctrl-shift-s');
+            break;
+        case 'f':
+            e.preventDefault();
+             alert('ctrl-shift-f');
+            break;
+        case 'g':
+            e.preventDefault();
+            deConfirmGroup();
+            break;
+    }
+    }else{
+      switch (e.key.toLowerCase()) {
         case 's':
             e.preventDefault();
             alert('ctrl-s');
@@ -308,14 +325,35 @@ document.addEventListener("keydown", e => {
             e.preventDefault();
             confirmGroup();
             break;
+      }
     }
   }
 })
 
 
 function confirmGroup() {
-  console.log(`打组`);
-  currentGroup = new Group()
+  if(Object.keys(currentGroup.children).length>1){
+    console.log(`打组`);
+    currentGroup = new Group()
+  }
+}
+
+function deConfirmGroup() {
+  if(Object.keys(currentGroup.children).length==1 
+  && currentGroup.children[Object.keys(currentGroup.children)[0]].constructor.name=="Group"
+  && !currentGroup.children[Object.keys(currentGroup.children)[0]].bezier){
+    console.log(`解组`);
+    let group_to_de = currentGroup.children[Object.keys(currentGroup.children)[0]]
+    group_to_de.element_b.remove()
+    
+    for(let i_child in group_to_de.children){
+      group_to_de.children[i_child].show_bbox()
+    }
+    currentGroup.children = group_to_de.children
+    currentGroup.update_bbox()
+    
+    delete Group.list[group_to_de.id]
+  }
 }
 
 
