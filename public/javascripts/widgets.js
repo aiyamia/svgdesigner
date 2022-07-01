@@ -48,3 +48,21 @@ document.querySelector('#download')
     // { width: 200, height: 200 } // options (optional, please see below for a list of option properties)
   );
 });
+document.querySelector('#import')
+.addEventListener('click', function onClick() {
+  document.querySelector('#imgimport').click()
+});
+document.querySelector('#imgimport')
+.addEventListener('change', function onClick() {
+  imported_file = this.files[0];
+  if (!imported_file) {
+    return;
+  }
+  const reader = new FileReader();
+  reader.addEventListener('load', (event) => {
+    let contents = event.target.result;
+    contents = contents.substring(contents.indexOf("\n") + 1)
+    document.querySelector("#lines").outerHTML = contents
+  });
+  reader.readAsText(imported_file);
+});

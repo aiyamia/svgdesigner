@@ -93,6 +93,7 @@ lines.addEventListener("mousedown", e => {
     drawing = true
     if(e.ctrlKey && l0){
       b = new Bezier({line1:l0,line2:l})
+      b.show_bbox()
     }
   }else if(draw_select==0){
     // console.log(`draw.js mousedown`);
@@ -164,8 +165,10 @@ lines.addEventListener("mousemove", e => {
           let rot_relevent_line_in_group = rot_relevent_lines_in_group[i_line];
           for(let i_angle in snap_angles_in_deg_array){
             snap_angle_in_deg = snap_angles_in_deg_array[i_angle];
-            let dtheta1_in_deg_for_judge = snap_angle_in_deg - rot_relevent_line_in_group.angle_in_deg
-            let dtheta2_in_deg_for_judge = Math.abs(rot_relevent_line_in_group.angle_in_deg - snap_angle_in_deg)-180
+            let dtheta_ini = snap_angle_in_deg - rot_relevent_line_in_group.angle_in_deg
+            let dtheta1_in_deg_for_judge = dtheta_ini
+            // let dtheta2_in_deg_for_judge = Math.abs(dtheta_ini)-180
+            let dtheta2_in_deg_for_judge = dtheta_ini - Math.sign(snap_angle_in_deg) * 180
             let condition1 = Math.abs(dtheta1_in_deg_for_judge) < err_range_angles_in_deg
             let condition2 = Math.abs(dtheta2_in_deg_for_judge) < err_range_angles_in_deg
             
@@ -228,8 +231,7 @@ lines.addEventListener("mousemove", e => {
       y0 = m.y
       group_to_move.moveChildren(dx,dy)
     }
-    group_to_move.update_bbox()
-    group_to_move.show_bbox()//保证线也全显示选框
+    hide_all_bbox()
   }
 });
 // on mouse up or mouse out the line ends here and you "empty" the eLine and oLine to be able to draw a new line
@@ -246,14 +248,14 @@ lines.addEventListener("mouseup", e => {
         // console.log(`snap啦！自动吸附${dtheta_in_deg_to_snap}°`);
         if(e.shiftKey){
           group_to_move.rotChildren(dtheta_in_deg_to_snap)
-          group_to_move.update_bbox()
-          group_to_move.show_bbox()//保证线也全显示选框
         }
         info_line.setAttribute('visibility','hidden')
         dtheta_in_deg_to_snap = null;
       }
     }
     moving_group = false;
+    currentGroup.update_bbox()
+    currentGroup.show_bbox()//保证线也全显示选框
   }
   if(selecting){
     m = oMousePosSVG(e);
@@ -279,10 +281,14 @@ lines.addEventListener("mouseup", e => {
       // console.log(`你选中了${selected_item}`);
       currentGroup.element_b.setAttribute('pointer-events','all')
     }
+    
   }
 });
 
 document.addEventListener("keydown", e => {
+  if(e.key=="Delete"){
+    currentGroup.delete()
+  }
   if (e.ctrlKey || e.metaKey) {
     switch (e.key.toLowerCase()) {
         case 's':
@@ -338,7 +344,7 @@ function updateBboxElement(rectBBox,element){
 
   rectBBox.setAttribute('width', w);
   rectBBox.setAttribute('height', h);
-  rectBBox.setAttribute('visibility', 'visible');
+  // rectBBox.setAttribute('visibility', 'visible');
   return rectBBox
 }
 

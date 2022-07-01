@@ -37,11 +37,14 @@ a {
   border:1px solid;
   margin: 5px;
   background-color: white;
+  cursor: pointer;
 }
 
 #select{
   background-color: white;
-  
+}
+#edit{
+  background-color: white;
 }
 #draw{
   background-color: orange;
@@ -62,6 +65,12 @@ a {
   background-color: rgb(180, 255, 196);
 }
 #undo:active{
+  background-color: black;
+}
+#import:hover{
+  background-color: rgb(109, 209, 255);
+}
+#import:active{
   background-color: black;
 }
 

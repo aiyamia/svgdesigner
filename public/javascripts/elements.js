@@ -4,12 +4,14 @@ class Element {
   element_g;
   x;
   y;
+  type_id;
+  control_widgets={}
   constructor() {
     this.parentGroup = {}
   }
   init_element(type,obj){
     let group_element = document.createElementNS(SVG_NS, "g");
-    group_element.setAttribute('id', `${this.constructor.name}${this.id}`);
+    group_element.setAttribute('id', this.type_id);
     group_element.setAttribute('transform', `translate(${this.x},${this.y})`);
     let core_element = document.createElementNS(SVG_NS, type);
     for(let property in obj){
@@ -17,7 +19,7 @@ class Element {
     }
     
     let bbox_element = generateBboxElement(core_element)
-    bbox_element.setAttribute('id', `${this.constructor.name}${this.id}_bbox`);
+    bbox_element.setAttribute('id', `${this.type_id}_bbox`);
     bbox_element.setAttribute('class', `bbox`);
     group_element.appendChild(core_element)
     group_element.appendChild(bbox_element)
@@ -28,7 +30,11 @@ class Element {
   }
   
   
+
   show_bbox(){
+    for(let i_widget in this.control_widgets){
+      this.control_widgets[i_widget].element_g.setAttribute('visibility','visible')
+    }
     let bbox_element = this.element_b;
     let bbox = this.element_c.getBBox();
     let pad = 5
@@ -41,8 +47,10 @@ class Element {
     bbox_element.setAttribute('visibility','visible')
   }
   hide_bbox(){
-    let bbox_element = this.element_b;
-    bbox_element.setAttribute('visibility','hidden')
+    for(let i_widget in this.control_widgets){
+      this.control_widgets[i_widget].element_g.setAttribute('visibility','hidden')
+    }
+    this.element_b.setAttribute('visibility','hidden')
   }
 }
 
@@ -56,6 +64,7 @@ class Point extends Element {
     super();
     this.id = ++Point.max_id;
     Point.list[this.id] = this;
+    this.type_id = `${this.constructor.name}${this.id}`;
     this.x = obj.x;
     this.y = obj.y;
     this.size = obj.size || 5;
@@ -237,6 +246,7 @@ class Line extends Element {
     
     this.id = ++Line.max_id;
     Line.list[this.id] = this;
+    this.type_id = `${this.constructor.name}${this.id}`;
     this.bezier = {};
     this.p1 = obj.p1;
     this.p2 = obj.p2;
@@ -248,7 +258,7 @@ class Line extends Element {
     this.angle_in_deg = Math.atan2(this.p2.y-this.p1.y,this.p2.x-this.p1.x) * (180/Math.PI)
 
     let group_element = document.createElementNS(SVG_NS, "g");
-    group_element.setAttribute('id', `${this.constructor.name}${this.id}`);
+    group_element.setAttribute('id', this.type_id);
     let line = document.createElementNS(SVG_NS, "path");
     line.setAttribute('d', `M ${this.p1.x} ${this.p1.y} L ${this.p2.x} ${this.p2.y}`);
     line.setAttribute('stroke-width', this.width);
@@ -256,7 +266,7 @@ class Line extends Element {
     line.setAttribute('fill', "transparent");
 
     let bbox_element = generateBboxElement(line)
-    bbox_element.setAttribute('id', `${this.constructor.name}${this.id}_bbox`);
+    bbox_element.setAttribute('id', `${this.type_id}_bbox`);
     bbox_element.setAttribute('class', `bbox`);
     group_element.appendChild(line)
     group_element.appendChild(bbox_element)
@@ -310,9 +320,12 @@ class Group {
   static max_id = 0;
   static list = {}
   element_b;
+  
   constructor() {
     this.id = ++Group.max_id;
     Group.list[this.id] = this;
+    this.type_id = `${this.constructor.name}${this.id}`;
+
     this.children = {}
     this.parentGroup = {}
     
@@ -327,7 +340,7 @@ class Group {
   
     let bbox_element = generateBboxElement(group)
     
-    bbox_element.setAttribute('id', `${this.constructor.name}${this.id}_bbox`);
+    bbox_element.setAttribute('id', `${this.type_id}_bbox`);
     bbox_element.setAttribute('class', `bbox`);
     
     this.element_b = bbox_element;
@@ -345,36 +358,37 @@ class Group {
     if(draw_select==0){
       down_elements = true
       hide_all_bbox()
+      info_line.setAttribute('visibility','hidden')
       if(e.ctrlKey){
-        if(Object.keys(this.children).includes(`${this_target.constructor.name}${this_target.id}`)){
-          this.removeChild(this_target)
-          // console.log(`当前this：\n${Object.keys(this.children)}`);
+        if(Object.keys(currentGroup.children).includes(`${this_target.constructor.name}${this_target.id}`)){
+          currentGroup.removeChild(this_target)
+          // console.log(`当前this：\n${Object.keys(currentGroup.children)}`);
         }else{
-          this.addChild(this_target)
-          // console.log(`当前this：\n${Object.keys(this.children)}`);
+          currentGroup.addChild(this_target)
+          // console.log(`当前this：\n${Object.keys(currentGroup.children)}`);
         }
       }else{
         if(this_target.constructor.name!="Group"){
-          this.children = {}
-          this.addChild(this_target)
+          currentGroup.children = {}
+          currentGroup.addChild(this_target)
         }else{
-          if(this_target.id!=this.id){
+          if(this_target.id!=currentGroup.id){
             // console.log(`这是个和当前组不一样的Group`);
-            this.children = {}
-            this.addChild(this_target)
+            currentGroup.children = {}
+            currentGroup.addChild(this_target)
             // console.log(this);
           }
         }
         // console.log(`当前组内成员：\n${Object.keys(this.children)}`);
       }
-      this.show_bbox()
+      currentGroup.show_bbox()
       
-      this.element_b.setAttribute('pointer-events','all')
+      currentGroup.element_b.setAttribute('pointer-events','all')
       
       // console.log(`将移动：组${this.id}`);
       down_elements = true
       moving_group = true
-      group_to_move = this
+      group_to_move = currentGroup
       m = oMousePosSVG(e);
       x0 = m.x;
       y0 = m.y;
@@ -501,6 +515,7 @@ class Group {
       // }
       for(let name in Group.list){
         Group.list[name].update_bbox(false)
+        // Group.list[name].hide_bbox()
       }
     }
   }
@@ -515,13 +530,20 @@ class Group {
     delete obj.parentGroup[`Group${this.id}`]
   }
   show_bbox(){
-    let bbox_element = document.getElementById(`${this.constructor.name}${this.id}_bbox`)
-    bbox_element.setAttribute('visibility','visible')
-    if(Object.keys(this.children).length>1){
-      for(let i_child in this.children){
-        this.children[i_child].show_bbox()
-      }
-    }else if(Object.keys(this.children).length==1){
+    this.element_b.setAttribute('visibility','visible')
+    // if(Object.keys(this.children).length>1){
+    //   for(let i_child in this.children){
+    //     this.children[i_child].show_bbox()
+    //   }
+    // }else if(Object.keys(this.children).length==1){
+    //   if(this.children[Object.keys(this.children)[0]].constructor.name=="Group"){
+    //     for(let i_child in this.children){
+    //       this.children[i_child].show_bbox()
+    //     }
+    //   }
+    // }
+
+    if(Object.keys(this.children).length==1){
       if(this.children[Object.keys(this.children)[0]].constructor.name=="Group"){
         for(let i_child in this.children){
           this.children[i_child].show_bbox()
@@ -530,13 +552,19 @@ class Group {
     }
   }
   hide_bbox(){
-    let bbox_element = document.getElementById(`${this.constructor.name}${this.id}_bbox`)
-    bbox_element.setAttribute('visibility','hidden')
-    if(Object.keys(this.children).length>1){
-      for(let i_child in this.children){
-        this.children[i_child].hide_bbox()
+    this.element_b.setAttribute('visibility','hidden')
+    if(Object.keys(this.children).length==1){
+      if(this.children[Object.keys(this.children)[0]].constructor.name=="Group"){
+        for(let i_child in this.children){
+          this.children[i_child].hide_bbox()
+        }
       }
     }
+    // if(Object.keys(this.children).length>1){
+    //   for(let i_child in this.children){
+    //     this.children[i_child].hide_bbox()
+    //   }
+    // }
   }
 
   contains(obj){
@@ -570,8 +598,42 @@ class Group {
     }
     return false
   }
-  remove(){
-    
+  delete(){
+    let groups_child = []
+    for(let i_child in this.children){
+      let child = this.children[i_child]
+      let type = child.constructor.name
+      if(type == "Group"){
+        console.log(child);
+        groups_child.push(child)
+      }else if(type == "Line"){
+        child.element_g.remove()
+        for(let i_group in child.parentGroup){
+          child.parentGroup[i_group].removeChild(child)
+        }
+        if(Object.keys(child.p1.line).length==1){
+          child.p1.element_g.remove()
+          delete Point.list[child.p1.id]
+        }else{
+          delete child.p1.line[child.id]
+        }
+        if(Object.keys(child.p2.line).length==1){
+          child.p2.element_g.remove()
+          delete Point.list[child.p2.id]
+        }else{
+          delete child.p2.line[child.id]
+        }
+      }
+    }
+    for(let i_group in groups_child){
+      let group_child = groups_child[i_group]
+      group_child.delete()
+    }
+    if(this.id != currentGroup.id){
+      this.element_b.remove()
+      delete Group.list[this.id]
+    }
+    // if(this.parentGroup)
   }
   static clear(){
     for(let name in Group.list){
@@ -590,6 +652,7 @@ class Bezier extends Element {
     super();
     this.id = ++Bezier.max_id;
     Bezier.list[this.id] = this;
+    this.type_id = `${this.constructor.name}${this.id}`;
 
     this.line1 = obj.line1
     this.line2 = obj.line2
@@ -607,8 +670,15 @@ class Bezier extends Element {
     this.width = obj.width || 2;
     this.color = obj.color || 'red';
     
+
+    this.control_widgets[this.line1.type_id] = this.line1;
+    this.control_widgets[this.line2.type_id] = this.line2;
+    this.control_widgets[this.p2.type_id] = this.p2;
+    this.control_widgets[this.p3.type_id] = this.p3;
+
+
     let group_element = document.createElementNS(SVG_NS, "g");
-    group_element.setAttribute('id', `${this.constructor.name}${this.id}`);
+    group_element.setAttribute('id', this.type_id);
     let bezier = document.createElementNS(SVG_NS, "path");
     bezier.setAttribute('d', 
     `M ${this.p1.x} ${this.p1.y} C ${this.p2.x} ${this.p2.y}, 
@@ -619,7 +689,7 @@ class Bezier extends Element {
     this.element_c = bezier
     
     let bbox_element = generateBboxElement(bezier)
-    bbox_element.setAttribute('id', `${this.constructor.name}${this.id}_bbox`);
+    bbox_element.setAttribute('id', `${this.type_id}_bbox`);
     bbox_element.setAttribute('class', `bbox`);
     group_element.appendChild(bezier)
     group_element.appendChild(bbox_element)
