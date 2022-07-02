@@ -88,7 +88,7 @@ var arGroupRotPoint;
 //events
 // on mouse down you create the line and append it to the svg element
 lines.addEventListener("mousedown", e => {
-  archive()
+  setArchive()
   if(draw_select==1){
     m = oMousePosSVG(e);
     p1 = new Point({x:m.x,y:m.y})
@@ -326,9 +326,9 @@ document.addEventListener("keydown", e => {
             e.preventDefault();
             alert('ctrl-s');
             break;
-        case 'f':
+        case 'z':
             e.preventDefault();
-             alert('ctrl-f');
+            getArchive()
             break;
         case 'g':
             e.preventDefault();
@@ -416,13 +416,31 @@ function oMousePosSVG(ev) {
   return p;
 }
 
-function archive() {
-  arPoints = {...Point.list}
-  arLines = {...Line.list}
-  arGroups = {...Group.list}
-  arBeziers = {...Bezier.list}
-  arSvg = $("#lines").clone(true,true)
-  arGroupRotPoint = Object.assign(new Point({x:0,y:0}), groupRotPoint)
+function setArchive() {
+  // arPoints = {...Point.list}
+  // arLines = {...Line.list}
+  // arGroups = {...Group.list}
+  // arBeziers = {...Bezier.list}
+  // arSvg = $("#lines").clone(true,true)
+  // arGroupRotPoint = Object.assign(new Point({x:0,y:0}), groupRotPoint)
+
+  localStorage.setItem("arPoints", Point.list)
+  localStorage.setItem("arLines", Line.list)
+  localStorage.setItem("arGroups", Group.list)
+  localStorage.setItem("arBeziers", Bezier.list)
+  localStorage.setItem("arSvg", svg) //$("#lines").clone(true,true)
+  localStorage.setItem("arGroupRotPoint", groupRotPoint)
+}
+function getArchive() {
+  Point.list = localStorage.getItem("arPoints")
+  Line.list = localStorage.getItem("arLines")
+  Group.list = localStorage.getItem("arGroups")
+  Bezier.list = localStorage.getItem("arBeziers")
+  groupRotPoint = localStorage.getItem("arGroupRotPoint")
+  let svg_stored = localStorage.getItem("arSvg")
+  let svg_parent = svg.parentNode
+  // svg_parent.removeChild(svg)
+  svg_parent.appendChild(svg_stored)
 }
 
 
