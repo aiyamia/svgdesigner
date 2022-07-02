@@ -1,37 +1,35 @@
 const SVG_NS = "http://www.w3.org/2000/svg";
-let svg = document.querySelector("#lines");
-var svg_rect = svg.getBoundingClientRect();
+var svg = document.querySelector("#lines");
+const svg_rect = svg.getBoundingClientRect();
 //下方两个相等由svg的css中设置box-sizing: border-box保证，
 //参见https://developer.mozilla.org/en-US/docs/Web/API/Element/getBoundingClientRect
-var svg_width = svg_rect.width; 
-var svg_height = svg_rect.height; 
-var defs = document.createElementNS(SVG_NS, "defs");
-let glow_filter = document.createElementNS(SVG_NS, "filter");
-glow_filter.setAttribute('id', 'glow');
-let colorMatrix = document.createElementNS(SVG_NS, "feColorMatrix");
-colorMatrix.setAttribute("type","matrix");
-colorMatrix.setAttribute(
-  "values","0 0 0 0 0\n0 0 0 0 0\n0 0 0 0 0\n0 0 0 0.7 0");
-let gaussianBlur = document.createElementNS(SVG_NS, "feGaussianBlur");
-gaussianBlur.setAttribute("result","coloredBlur");
-gaussianBlur.setAttribute("stdDeviation","1");
-let merge = document.createElementNS(SVG_NS, "feMerge");
-let mergeNode1 = document.createElementNS(SVG_NS, "feMergeNode");
-mergeNode1.setAttribute("in","coloredBlur");
-let mergeNode2 = document.createElementNS(SVG_NS, "feMergeNode");
-mergeNode2.setAttribute("in","SourceGraphic");
-merge.appendChild(mergeNode1);
-merge.appendChild(mergeNode2);
-glow_filter.appendChild(colorMatrix)
-glow_filter.appendChild(gaussianBlur)
-glow_filter.appendChild(merge)
-defs.appendChild(glow_filter);
+const svg_width = svg_rect.width; 
+const svg_height = svg_rect.height; 
+// const defs = document.createElementNS(SVG_NS, "defs");
+// const glow_filter = document.createElementNS(SVG_NS, "filter");
+// glow_filter.setAttribute('id', 'glow');
+// const colorMatrix = document.createElementNS(SVG_NS, "feColorMatrix");
+// colorMatrix.setAttribute("type","matrix");
+// colorMatrix.setAttribute(
+//   "values","0 0 0 0 0\n0 0 0 0 0\n0 0 0 0 0\n0 0 0 0.7 0");
+// const gaussianBlur = document.createElementNS(SVG_NS, "feGaussianBlur");
+// gaussianBlur.setAttribute("result","coloredBlur");
+// gaussianBlur.setAttribute("stdDeviation","1");
+// const merge = document.createElementNS(SVG_NS, "feMerge");
+// const mergeNode1 = document.createElementNS(SVG_NS, "feMergeNode");
+// mergeNode1.setAttribute("in","coloredBlur");
+// const mergeNode2 = document.createElementNS(SVG_NS, "feMergeNode");
+// mergeNode2.setAttribute("in","SourceGraphic");
+// merge.appendChild(mergeNode1);
+// merge.appendChild(mergeNode2);
+// glow_filter.appendChild(colorMatrix)
+// glow_filter.appendChild(gaussianBlur)
+// glow_filter.appendChild(merge)
+// defs.appendChild(glow_filter);
 
-svg.appendChild(defs);  
+// svg.appendChild(defs);  
 
-function union(...sets) {
-  return new Set([].concat(...sets.map(set => [...set])));
-}
+
 
 
 m = {};// the mouse position
@@ -44,13 +42,12 @@ id_target = null;
 
 var x0,y0,p1_x0,p1_y0,p2_x0,p2_y0,dx,dy;
 var group_to_move;
-var select_frame_element;
-var groupRotPoint;
+
 var snap_angles_in_deg=new Set([]);
 var snap_angle_in_deg;
-var err_range_angles_in_deg = 10;
-currentGroup = new Group()
-groupRotPoint = new Point({x:100,y:100,color:'orange',size:10})
+const err_range_angles_in_deg = 10;
+var currentGroup = new Group()
+var groupRotPoint = new Point({x:100,y:100,color:'orange',size:10})
 var rot_relevent_lines_in_group={};
 var info_line = document.createElementNS(SVG_NS, "path");
 info_line.setAttribute('d', `M 0 0 L 500 500`);
@@ -63,7 +60,7 @@ var dtheta_in_deg_to_snap = null;
 
 var down_elements;
 var l;
-select_frame_element=document.createElementNS(SVG_NS,'rect')
+var select_frame_element = document.createElementNS(SVG_NS,'rect')
 svg.appendChild(select_frame_element)
 select_frame_element.setAttribute('id','select_frame')
 select_frame_element.setAttribute("stroke","black");
@@ -78,9 +75,20 @@ select_frame_element.setAttribute('width', 5);
 select_frame_element.setAttribute('height', 5);
 select_frame_element.setAttribute('visibility', 'hidden');
 
+//用来存放历史状态的变量
+var arPoints;
+var arLines;
+var arGroups;
+var arBeziers;
+var arSvg;
+var arGroupRotPoint;
+
+
+
 //events
 // on mouse down you create the line and append it to the svg element
 lines.addEventListener("mousedown", e => {
+  archive()
   if(draw_select==1){
     m = oMousePosSVG(e);
     p1 = new Point({x:m.x,y:m.y})
@@ -95,6 +103,7 @@ lines.addEventListener("mousedown", e => {
       b = new Bezier({line1:l0,line2:l})
       b.show_bbox()
     }
+    
   }else if(draw_select==0){
     // console.log(`draw.js mousedown`);
     if(!down_elements){
@@ -407,6 +416,19 @@ function oMousePosSVG(ev) {
   return p;
 }
 
+function archive() {
+  arPoints = {...Point.list}
+  arLines = {...Line.list}
+  arGroups = {...Group.list}
+  arBeziers = {...Bezier.list}
+  arSvg = $("#lines").clone(true,true)
+  arGroupRotPoint = Object.assign(new Point({x:0,y:0}), groupRotPoint)
+}
+
+
+// function union(...sets) {
+//   return new Set([].concat(...sets.map(set => [...set])));
+// }
 
 // lines.addEventListener("mouseout", e => {
 //   if (eLine) {
