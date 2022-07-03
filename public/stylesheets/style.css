@@ -37,11 +37,14 @@ a {
   border:1px solid;
   margin: 5px;
   background-color: white;
+  cursor: pointer;
 }
 
 #select{
   background-color: white;
-  
+}
+#edit{
+  background-color: white;
 }
 #draw{
   background-color: orange;
@@ -64,6 +67,12 @@ a {
 #undo:active{
   background-color: black;
 }
+#import:hover{
+  background-color: rgb(109, 209, 255);
+}
+#import:active{
+  background-color: black;
+}
 
 img{
   max-width:100%;
@@ -71,6 +80,7 @@ img{
 }
 #lines {
   border:1px solid;
+  box-sizing: border-box;
   pointer-events:initial
 }
 #lines>g  {
@@ -92,3 +102,53 @@ line{
   cursor: grabbing;
 }
 
+#snackbar {
+  /* visibility: hidden; */
+  min-width: 250px;
+  margin-left: -125px;
+  background-color: rgb(95 209 153);
+  color: #fff;
+  text-align: center;
+  border-radius: 2px;
+  padding: 16px;
+  position: fixed;
+  z-index: 1;
+  left: 50%;
+  top: 30px;
+  font-size: 17px;
+  opacity: 0;
+  box-shadow: 3px 3px 5px #ccc, -3px 3px 5px #ccc, 3px -3px 5px #ccc, -3px -3px 5px #ccc;
+}
+
+#snackbar.show {
+  /* visibility: visible; */
+  /* -webkit-animation: fadein 0.5s, fadeout 0.5s; */
+  animation: inout 2s ease;
+}
+
+
+@keyframes inout{
+  0% {
+    top: 30px;
+    opacity: 0;
+  }
+  30% {
+    top:100px;
+    opacity: 1;
+  }
+  100% {
+    top:100px;
+    opacity: 0;
+  }
+}
+
+/* 
+@keyframes fadein {
+  from {top: 0; opacity: 0;}
+  to {top: 30px; opacity: 1;}
+}
+
+@keyframes fadeout {
+  from {top: 30px; opacity: 1;}
+  to {top: 0; opacity: 0;}
+} */

@@ -4,14 +4,21 @@
     <title><%= title %></title>
     <link rel='stylesheet' href='/stylesheets/style.css' />
     <script src="/javascripts/svg-export.min.js"></script>
-    <!-- <script src="/javascripts/jquery.min.js"></script>
-    <script src="/javascripts/jquery-ui.min.js"></script> -->
+    <!-- <script src="/javascripts/jquery.min.js"></script> -->
+    <!-- <script src="/javascripts/lodash.core.js"></script> -->
+    <!-- <script src="/javascripts/jquery-ui.min.js"></script> -->
   </head>
   <body>
+    <div id="snackbar">Some text some message..</div>
     <div class="widgets">
       <button id="draw"><img src="/images/pencil-svgrepo-com.svg"/></button>
-      <button id="select"><img src="/images/cursor-svgrepo-com.svg"/></button>
+      <button id="select"><img src="/images/edit-svgrepo-com.svg"/></button>
+
       <button id="clear"><img src="/images/trash-svgrepo-com.svg"/></button>
+      
+      <input type="file" id="imgimport" accept=".svg" style="display:none"/>
+      <button id="import"><img src="/images/file-import-svgrepo-com.svg"/></button>
+      
       <button id="download"><img src="/images/download-svgrepo-com.svg"/></button>
       <button id="undo"><img src="/images/undo-svgrepo-com.svg"/></button>
     </div>

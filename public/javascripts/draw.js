@@ -1,31 +1,108 @@
 const SVG_NS = "http://www.w3.org/2000/svg";
-let svg = document.querySelector("#lines");
-var defs = document.createElementNS(SVG_NS, "defs");
-let glow_filter = document.createElementNS(SVG_NS, "filter");
-glow_filter.setAttribute('id', 'glow');
-let colorMatrix = document.createElementNS(SVG_NS, "feColorMatrix");
-colorMatrix.setAttribute("type","matrix");
-colorMatrix.setAttribute(
-  "values","0 0 0 0 0\n0 0 0 0 0\n0 0 0 0 0\n0 0 0 0.7 0");
-let gaussianBlur = document.createElementNS(SVG_NS, "feGaussianBlur");
-gaussianBlur.setAttribute("result","coloredBlur");
-gaussianBlur.setAttribute("stdDeviation","1");
-let merge = document.createElementNS(SVG_NS, "feMerge");
-let mergeNode1 = document.createElementNS(SVG_NS, "feMergeNode");
-mergeNode1.setAttribute("in","coloredBlur");
-let mergeNode2 = document.createElementNS(SVG_NS, "feMergeNode");
-mergeNode2.setAttribute("in","SourceGraphic");
-merge.appendChild(mergeNode1);
-merge.appendChild(mergeNode2);
-glow_filter.appendChild(colorMatrix)
-glow_filter.appendChild(gaussianBlur)
-glow_filter.appendChild(merge)
-defs.appendChild(glow_filter);
+var svg = document.querySelector("#lines");
+const svg_rect = svg.getBoundingClientRect();
+//下方两个相等由svg的css中设置box-sizing: border-box保证，
+//参见https://developer.mozilla.org/en-US/docs/Web/API/Element/getBoundingClientRect
+const svg_width = svg_rect.width; 
+const svg_height = svg_rect.height; 
+// const defs = document.createElementNS(SVG_NS, "defs");
+// const glow_filter = document.createElementNS(SVG_NS, "filter");
+// glow_filter.setAttribute('id', 'glow');
+// const colorMatrix = document.createElementNS(SVG_NS, "feColorMatrix");
+// colorMatrix.setAttribute("type","matrix");
+// colorMatrix.setAttribute(
+//   "values","0 0 0 0 0\n0 0 0 0 0\n0 0 0 0 0\n0 0 0 0.7 0");
+// const gaussianBlur = document.createElementNS(SVG_NS, "feGaussianBlur");
+// gaussianBlur.setAttribute("result","coloredBlur");
+// gaussianBlur.setAttribute("stdDeviation","1");
+// const merge = document.createElementNS(SVG_NS, "feMerge");
+// const mergeNode1 = document.createElementNS(SVG_NS, "feMergeNode");
+// mergeNode1.setAttribute("in","coloredBlur");
+// const mergeNode2 = document.createElementNS(SVG_NS, "feMergeNode");
+// mergeNode2.setAttribute("in","SourceGraphic");
+// merge.appendChild(mergeNode1);
+// merge.appendChild(mergeNode2);
+// glow_filter.appendChild(colorMatrix)
+// glow_filter.appendChild(gaussianBlur)
+// glow_filter.appendChild(merge)
+// defs.appendChild(glow_filter);
 
-svg.appendChild(defs);  
+// svg.appendChild(defs);  
 
-function union(...sets) {
-  return new Set([].concat(...sets.map(set => [...set])));
+
+var myData={
+  Point:{
+    max_id:0,
+    list:{}
+  },
+  Line:{
+    max_id:0,
+    list:{}
+  },
+  Group:{
+    max_id:0,
+    list:{}
+  },
+  Bezier:{
+    max_id:0,
+    list:{}
+  },
+  GroupRotPoint:null,
+  CurrentGroup:null
+}
+
+var head=-1;
+var last_id=-1;
+var maxLength_archive = 10;
+var archive=[];
+
+function undo() {
+  console.log('撤销');
+  if(archive.length<2){
+    // alert('初始状态，不能撤销')
+    showSnackbar('初始状态，不能撤销')
+  }else if(head==0){
+    // alert('已到最前，不能撤销')
+    showSnackbar('已到最前，不能撤销')
+  }else{
+    head -= 1
+    regenerate(archive[head]);
+  }
+}
+
+function redo() {
+  console.log('重做');
+  if(archive.length<2){
+    // alert('初始状态，不能重做')
+    showSnackbar('初始状态，不能重做')
+  }else if(head == last_id){
+    // alert('已到最后，不能重做')
+    showSnackbar('已到最后，不能重做')
+  }else{
+    head += 1
+    regenerate(archive[head]);
+  }
+}
+
+function setArchive() {
+  if(!myData.GroupRotPoint || !myData.CurrentGroup ){
+    console.log(myData);
+  }
+  // console.log(`存档`);
+  if(head == last_id){
+    if(last_id != maxLength_archive-1){
+      archive[++head] = JSON.stringify(myData)
+      last_id++
+    }else{
+      for(let i=0;i<last_id;i++){
+        archive[i] = archive[i+1]
+      }
+      archive[last_id] = JSON.stringify(myData)
+    }
+  }else{
+    archive[++head] = JSON.stringify(myData)
+    last_id = head
+  }
 }
 
 
@@ -33,16 +110,33 @@ m = {};// the mouse position
 drawing = false;
 selecting = false;
 moving_group = false;
+rotting_group = false;
 snapping = false;
 id_target = null;
 
 var x0,y0,p1_x0,p1_y0,p2_x0,p2_y0,dx,dy;
 var group_to_move;
-var select_frame_element;
-currentGroup = new Group()
+
+var snap_angles_in_deg=new Set([]);
+var snap_angle_in_deg;
+const err_range_angles_in_deg = 10;
+var currentGroup = new Group()
+myData.CurrentGroup = currentGroup.id;
+var groupRotPoint = new Point({x:100,y:100,color:'orange',size:10})
+myData.GroupRotPoint = groupRotPoint.id;
+var rot_relevent_lines_in_group={};
+var info_line = document.createElementNS(SVG_NS, "path");
+info_line.setAttribute('d', `M 0 0 L 500 500`);
+info_line.setAttribute('stroke-width', '1');
+info_line.setAttribute("stroke-dasharray","2,2");
+info_line.setAttribute('stroke', 'green');
+info_line.setAttribute('fill', "transparent");
+
+var dtheta_in_deg_to_snap = null;
+
 var down_elements;
 var l;
-select_frame_element=document.createElementNS(SVG_NS,'rect')
+var select_frame_element = document.createElementNS(SVG_NS,'rect')
 svg.appendChild(select_frame_element)
 select_frame_element.setAttribute('id','select_frame')
 select_frame_element.setAttribute("stroke","black");
@@ -57,6 +151,8 @@ select_frame_element.setAttribute('width', 5);
 select_frame_element.setAttribute('height', 5);
 select_frame_element.setAttribute('visibility', 'hidden');
 
+
+
 //events
 // on mouse down you create the line and append it to the svg element
 lines.addEventListener("mousedown", e => {
@@ -68,30 +164,71 @@ lines.addEventListener("mousedown", e => {
       l0 = l
     }
     
-    l = new Line({p1:p1,p2:p2},lines)
+    l = new Line({p1:p1,p2:p2})
     drawing = true
     if(e.ctrlKey && l0){
       b = new Bezier({line1:l0,line2:l})
+      b.show_bbox()
     }
+    
   }else if(draw_select==0){
+    // console.log(e.target);
+    // console.log(e.target.getAttribute('class') && e.target.getAttribute('class').split(' ').includes('pointlistener'));
+    if(e.target.getAttribute('class')){
+      let target_class = e.target.getAttribute('class').split(' ');
+      if(target_class.includes('pointlistener') || target_class.includes('linelistener') || target_class.includes('bezierlistener') || target_class.includes('grouplistener')){
+        currentGroup.mousedown_event(e)
+      }
+    }
     // console.log(`draw.js mousedown`);
     if(!down_elements){
       hide_all_bbox()
+      if(Object.keys(currentGroup.children).length==1 && Object.keys(currentGroup.children)[0].includes("Group")){
+        let this_b = getObj(Object.keys(currentGroup.children)[0]).bezier
+        if(this_b){
+          myData.Bezier.list[this_b].hide_control_widgets()
+        }
+      }
       currentGroup.children = {}
       selecting = true
       m = oMousePosSVG(e);
       x0 = m.x
       y0 = m.y
+
       currentGroup.element_b.setAttribute('pointer-events','initial')
+    }else{
+      if(e.altKey && groupRotPoint.groupRotSnapPoint){
+        // degree_cum = 0
+        snap_angles_in_deg.clear();
+        rot_relevent_lines_in_group = {};
+        let rot_relevent_lines = myData.Point.list[groupRotPoint.groupRotSnapPoint].line
+        
+        for (let i_line in rot_relevent_lines){
+          let rot_relevent_line = myData.Line.list[i_line];
+          if(!(group_to_move.contains(rot_relevent_line.type_id))){
+            
+            snap_angles_in_deg.add(rot_relevent_line.angle_in_deg)
+
+          }else{
+            rot_relevent_lines_in_group[i_line] = null;
+          }
+        }
+      }
     }
   }
 });
 
 // on mouse move you update the line 
 lines.addEventListener("mousemove", e => {
+  
   if (drawing) {
     m = oMousePosSVG(e);
-    p2.update_loc(m.x,m.y)
+    p2.moveTo(m.x,m.y)
+  }
+  if(draw_select==0){
+    if(e.target.getAttribute('class') && e.target.getAttribute('class').split(' ').includes('pointlistener')){
+        currentGroup.mousemove_event(e)
+    }
   }
   if (selecting) {
     m = oMousePosSVG(e);
@@ -102,40 +239,144 @@ lines.addEventListener("mousemove", e => {
     select_frame_element.setAttribute('visibility', 'visible');
   }
   if(moving_group){
-    m = oMousePosSVG(e);
-    dx = m.x - x0
-    dy = m.y - y0
-    x0 = m.x
-    y0 = m.y
-    group_to_move.moveChildren(dx,dy)
-    group_to_move.update_bbox()
-    group_to_move.show_bbox()//保证线也全显示选框
+    if(e.altKey){
+      //旋转
+      m = oMousePosSVG(e);
+      let lx = m.x - groupRotPoint.x
+      let ly = m.y - groupRotPoint.y
+      let theta_in_deg = Math.atan2(ly,lx) * (180/Math.PI)
+      let lx0 = x0 - groupRotPoint.x
+      let ly0 = y0 - groupRotPoint.y
+      let theta0_in_deg = Math.atan2(ly0,lx0) * (180/Math.PI)
+      let dtheta_in_deg = theta_in_deg - theta0_in_deg;
+
+      
+      x0 = m.x
+      y0 = m.y
+
+      if(groupRotPoint.groupRotSnapPoint){
+        snap_angles_in_deg_array = Array.from(snap_angles_in_deg)
+        let stop_loop = false
+        for(let i_line in rot_relevent_lines_in_group){
+          let rot_relevent_line_in_group = myData.Line.list[i_line];
+          for(let i_angle in snap_angles_in_deg_array){
+            snap_angle_in_deg = snap_angles_in_deg_array[i_angle];
+            let dtheta_ini = snap_angle_in_deg - rot_relevent_line_in_group.angle_in_deg
+            let dtheta1_in_deg_for_judge = dtheta_ini
+            // let dtheta2_in_deg_for_judge = Math.abs(dtheta_ini)-180
+            let dtheta2_in_deg_for_judge = dtheta_ini - Math.sign(snap_angle_in_deg) * 180
+            let condition1 = Math.abs(dtheta1_in_deg_for_judge) < err_range_angles_in_deg
+            let condition2 = Math.abs(dtheta2_in_deg_for_judge) < err_range_angles_in_deg
+            
+            if( condition1 || condition2){
+              dtheta_in_deg_to_snap = condition1 ? dtheta1_in_deg_for_judge : dtheta2_in_deg_for_judge
+
+              info_line.setAttribute('d',
+              `M 
+              0 
+              ${groupRotPoint.y - groupRotPoint.x * Math.tan(snap_angle_in_deg * (Math.PI/180))} 
+              L 
+              ${svg_width} 
+              ${groupRotPoint.y + (svg_width - groupRotPoint.x) * Math.tan(snap_angle_in_deg * (Math.PI/180))}`)
+              
+              svg.prepend(info_line)
+              info_line.setAttribute('visibility','visible')
+
+              stop_loop = true;
+              break;
+            }else{
+              info_line.setAttribute('visibility','hidden')
+              dtheta_in_deg_to_snap = null
+            }
+          }
+          
+          if(stop_loop){
+            break;
+          }
+        }
+      }
+      // degree_cum += dtheta_in_deg
+      
+      // if(dtheta_in_deg_to_snap){
+      //   snap_degree_cum += dtheta_in_deg
+      //   console.log(`snap_degree_cum：${snap_degree_cum}`);
+      //   if(Math.abs(snap_degree_cum)>1){
+      //     group_to_move.rotChildren(dtheta_in_deg)
+      //     console.log(`动！`);
+      //   }else{
+      //     console.log(`不动`);
+      //   }
+      // }else{
+      //   snap_degree_cum = 0
+        
+      // }
+      group_to_move.rotChildren(dtheta_in_deg)
+    }else{
+      if(groupRotPoint.groupRotSnapPoint){
+        // console.log(`groupRotPoint.groupRotSnapPoint`);
+        if(group_to_move.contains(`Point${groupRotPoint.groupRotSnapPoint}`)||group_to_move.contains(groupRotPoint.type_id)){
+          // console.log(`动了`);
+          groupRotPoint.groupRotSnapPoint = null
+        }
+      }
+      
+      m = oMousePosSVG(e);
+      dx = m.x - x0
+      dy = m.y - y0
+      x0 = m.x
+      y0 = m.y
+      group_to_move.moveChildren(dx,dy)
+    }
+    hide_all_bbox()
   }
 });
 // on mouse up or mouse out the line ends here and you "empty" the eLine and oLine to be able to draw a new line
 lines.addEventListener("mouseup", e => {
   
+  if(draw_select==0){
+    if(e.target.getAttribute('class') && e.target.getAttribute('class').split(' ').includes('pointlistener')){
+      currentGroup.mouseup_event(e)
+    }
+  }
   down_elements = false
   if (drawing) {
+    setArchive()
     drawing = false;
   }
   if (moving_group) {
+    setArchive()
     // console.log(`draw.js  mouseup`);
+    if(e.altKey && groupRotPoint.groupRotSnapPoint){
+      if(dtheta_in_deg_to_snap){
+        // console.log(`snap啦！自动吸附${dtheta_in_deg_to_snap}°`);
+        if(e.shiftKey){
+          group_to_move.rotChildren(dtheta_in_deg_to_snap)
+        }
+        info_line.setAttribute('visibility','hidden')
+        dtheta_in_deg_to_snap = null;
+      }
+    }
     moving_group = false;
+    currentGroup.update_bbox()
+    currentGroup.show_bbox()//保证线也全显示选框
   }
   if(selecting){
     m = oMousePosSVG(e);
     selecting = false;
     select_frame_element.setAttribute('visibility', 'hidden');
-    for(let i_p in Point.list){
-      let p = Point.list[i_p]
-      if((p.x-x0)*(p.x-m.x)<0 && (p.y-y0)*(p.y-m.y)<0){
-        currentGroup.addChild(p)
+    for(let i_p in myData.Point.list){
+      let p = myData.Point.list[i_p]
+      if(p.id != groupRotPoint.id){
+        if((p.x-x0)*(p.x-m.x)<0 && (p.y-y0)*(p.y-m.y)<0){
+          currentGroup.addChild(p)
+        }
       }
     }
-    for(let i_l in Line.list){
-      let l = Line.list[i_l]
-      if((l.p1.x-x0)*(l.p1.x-m.x)<0 && (l.p1.y-y0)*(l.p1.y-m.y)<0 && (l.p2.x-x0)*(l.p2.x-m.x)<0 && (l.p2.y-y0)*(l.p2.y-m.y)<0){
+    for(let i_l in myData.Line.list){
+      let l = myData.Line.list[i_l]
+      let l_p1 = myData.Point.list[l.p1]
+      let l_p2 = myData.Point.list[l.p2]
+      if((l_p1.x-x0)*(l_p1.x-m.x)<0 && (l_p1.y-y0)*(l_p1.y-m.y)<0 && (l_p2.x-x0)*(l_p2.x-m.x)<0 && (l_p2.y-y0)*(l_p2.y-m.y)<0){
         currentGroup.addChild(l)
       }
     }
@@ -145,32 +386,80 @@ lines.addEventListener("mouseup", e => {
       // console.log(`你选中了${selected_item}`);
       currentGroup.element_b.setAttribute('pointer-events','all')
     }
+    
   }
 });
 
 document.addEventListener("keydown", e => {
+  if(e.key=="Delete"){
+    currentGroup.delete()
+  }
   if (e.ctrlKey || e.metaKey) {
-    switch (e.key.toLowerCase()) {
+    
+    if(e.shiftKey){
+      switch (e.key.toLowerCase()) {
         case 's':
             e.preventDefault();
-            alert('ctrl-s');
+            alert('ctrl-shift-s');
             break;
-        case 'f':
+        case 'z':
             e.preventDefault();
-             alert('ctrl-f');
+            break;
+        case 'g':
+            e.preventDefault();
+            deConfirmGroup();
+            setArchive();
+            break;
+    }
+    }else{
+      switch (e.key.toLowerCase()) {
+        case 'y':
+            e.preventDefault();
+            redo()
+            break;
+        case 'z':
+            e.preventDefault();
+            undo()
             break;
         case 'g':
             e.preventDefault();
             confirmGroup();
+            setArchive();
             break;
+      }
     }
   }
 })
 
 
+setArchive()
+
 function confirmGroup() {
-  console.log(`打组`);
-  currentGroup = new Group()
+  if(Object.keys(currentGroup.children).length>1){
+    console.log(`打组`);
+    currentGroup = new Group()
+    myData.CurrentGroup = currentGroup.id;
+  }
+}
+
+function deConfirmGroup() {
+  if(Object.keys(currentGroup.children).length==1 
+  && Object.keys(currentGroup.children)[0].includes("Group")){
+    let this_g = getObj(Object.keys(currentGroup.children)[0]);
+    if (!this_g.bezier){
+      console.log(`解组`);
+      let group_to_de = this_g;
+      group_to_de.element_b.remove()
+      
+      for(let i_child in group_to_de.children){
+        getObj(i_child).show_bbox()
+      }
+      currentGroup.children = group_to_de.children
+      currentGroup.update_bbox()
+      
+      delete myData.Group.list[group_to_de.id]
+    }
+  }
 }
 
 
@@ -182,7 +471,7 @@ function generateBboxElement(element){
   rectBBox.setAttribute("fill","none");
   rectBBox.setAttribute("stroke-dasharray","2,2");
   let bbox = element.getBBox();
-  let pad = 5
+  let pad = 10
   let w =  2*pad+bbox.width
   let h =  2*pad+bbox.height
   rectBBox.setAttribute('x', bbox.x-pad);
@@ -193,9 +482,10 @@ function generateBboxElement(element){
   rectBBox.setAttribute('visibility', 'hidden');
   return rectBBox
 }
+
 function updateBboxElement(rectBBox,element){
   let bbox = element.getBBox();
-  let pad = 5
+  let pad = 10
   let w =  2*pad+bbox.width
   let h =  2*pad+bbox.height
   rectBBox.setAttribute('x', bbox.x-pad);
@@ -203,7 +493,7 @@ function updateBboxElement(rectBBox,element){
 
   rectBBox.setAttribute('width', w);
   rectBBox.setAttribute('height', h);
-  rectBBox.setAttribute('visibility', 'visible');
+  // rectBBox.setAttribute('visibility', 'visible');
   return rectBBox
 }
 
@@ -223,6 +513,138 @@ function oMousePosSVG(ev) {
   return p;
 }
 
+function getObj(this_type_id) {
+  let [targetObj_type,targetObj_id] = this_type_id.split(/(?<=[^\d])(?=\d)/);
+  return myData[targetObj_type].list[targetObj_id];
+}
+
+
+function regenerate(myData_string) {
+  svg.replaceChildren()
+  select_frame_element = document.createElementNS(SVG_NS,'rect')
+  svg.appendChild(select_frame_element)
+  select_frame_element.setAttribute('id','select_frame')
+  select_frame_element.setAttribute("stroke","black");
+  select_frame_element.setAttribute("stroke-width","1");
+  select_frame_element.setAttribute("fill","none");
+  select_frame_element.setAttribute("stroke-dasharray","2,2");
+
+  select_frame_element.setAttribute('x', 0);
+  select_frame_element.setAttribute('y', 0);
+
+  select_frame_element.setAttribute('width', 5);
+  select_frame_element.setAttribute('height', 5);
+  select_frame_element.setAttribute('visibility', 'hidden');
+  myData={
+    Point:{
+      max_id:0,
+      list:{}
+    },
+    Line:{
+      max_id:0,
+      list:{}
+    },
+    Group:{
+      max_id:0,
+      list:{}
+    },
+    Bezier:{
+      max_id:0,
+      list:{}
+    },
+    GroupRotPoint:null,
+    CurrentGroup:null
+  };
+  
+  myData_plain = JSON.parse(myData_string)
+
+  groupRotPoint = null
+  myData.Point.max_id = myData_plain.Point.max_id;
+  for (let i_point_plain in myData_plain.Point.list) {
+    myData.Point.list[i_point_plain] = new Point(myData_plain.Point.list[i_point_plain],true);
+  }
+  groupRotPoint = myData.Point.list[myData_plain.GroupRotPoint]
+  myData.GroupRotPoint = myData_plain.GroupRotPoint;
+
+  if(!myData_plain.GroupRotPoint){
+    console.log(`myData_plain.GroupRotPoint = ${myData_plain.GroupRotPoint}`);
+    console.log(groupRotPoint);
+  }
+  myData.Line.max_id = myData_plain.Line.max_id;
+  for (let i_line_plain in myData_plain.Line.list) {
+    myData.Line.list[i_line_plain] = new Line(myData_plain.Line.list[i_line_plain],true);
+    // myData.Line.list[i_line_plain].update_bbox()
+  }
+
+  myData.Bezier.max_id = myData_plain.Bezier.max_id;
+  for (let i_bezier_plain in myData_plain.Bezier.list) {
+    myData.Bezier.list[i_bezier_plain] = new Bezier(myData_plain.Bezier.list[i_bezier_plain],true);
+    // myData.Bezier.list[i_bezier_plain].update_bbox()
+  }
+
+  myData.Group.max_id = myData_plain.Group.max_id;
+  for (let i_group_plain in myData_plain.Group.list) {
+    myData.Group.list[i_group_plain] = new Group(myData_plain.Group.list[i_group_plain],true);
+    // myData.Group.list[i_group_plain].update_bbox();
+  }
+
+  currentGroup = myData.Group.list[myData_plain.CurrentGroup]
+  myData.CurrentGroup = myData_plain.CurrentGroup;
+
+
+  for (let i_line_plain in myData_plain.Line.list) {
+    myData.Line.list[i_line_plain].update_bbox()
+  }
+  for (let i_bezier_plain in myData_plain.Bezier.list) {
+    myData.Bezier.list[i_bezier_plain].update_bbox()
+  }
+  for (let i_group_plain in myData_plain.Group.list) {
+    myData.Group.list[i_group_plain].update_bbox();
+  }
+  //让旋转中心点保持在最前面，方便点取。
+  svg.appendChild(groupRotPoint.element_g)
+}
+
+
+function showSnackbar(contents) {
+  var x = document.getElementById("snackbar");
+  x.textContent = contents
+  // setTimeout(function(){ x.className = x.className.replace("show", ""); }, 3000);
+  x.classList.add('show')
+  setTimeout(function(){ x.classList.remove('show'); }, 2000);
+}
+
+// function setArchive() {
+//   // arPoints = {...myData.Point.list}
+//   // arLines = {...myData.Line.list}
+//   // arGroups = {...myData.Group.list}
+//   // arBeziers = {...myData.Bezier.list}
+//   // arSvg = $("#lines").clone(true,true)
+//   // arGroupRotPoint = Object.assign(new Point({x:0,y:0}), groupRotPoint)
+
+//   localStorage.setItem("arPoints", myData.Point.list)
+//   localStorage.setItem("arLines", myData.Line.list)
+//   localStorage.setItem("arGroups", myData.Group.list)
+//   localStorage.setItem("arBeziers", myData.Bezier.list)
+//   localStorage.setItem("arSvg", svg) //$("#lines").clone(true,true)
+//   localStorage.setItem("arGroupRotPoint", groupRotPoint)
+// }
+// function getArchive() {
+//   myData.Point.list = localStorage.getItem("arPoints")
+//   myData.Line.list = localStorage.getItem("arLines")
+//   myData.Group.list = localStorage.getItem("arGroups")
+//   myData.Bezier.list = localStorage.getItem("arBeziers")
+//   groupRotPoint = localStorage.getItem("arGroupRotPoint")
+//   let svg_stored = localStorage.getItem("arSvg")
+//   let svg_parent = svg.parentNode
+//   // svg_parent.removeChild(svg)
+//   svg_parent.appendChild(svg_stored)
+// }
+
+
+// function union(...sets) {
+//   return new Set([].concat(...sets.map(set => [...set])));
+// }
 
 // lines.addEventListener("mouseout", e => {
 //   if (eLine) {
