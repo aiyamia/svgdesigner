@@ -201,7 +201,7 @@ class Point extends Element {
   snap(){
     // 称 吸附中位置变动的点为“跳点”，位置不动的是“目标点”
     let point_target = myData.Point.list[id_target]
-    point_target.element_g.remove()
+    
     //跳点位置移动
     this.moveTo(point_target.x,point_target.y)
 
@@ -210,7 +210,7 @@ class Point extends Element {
       let lines_target = point_target.line
       let beziers_target = point_target.bezier
       let groups_target = point_target.parentGroup
-
+      point_target.element_g.remove()
       delete myData.Point.list[id_target]
 
       if(groupRotPoint.groupRotSnapPoint){
