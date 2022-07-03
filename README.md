@@ -36,7 +36,7 @@ web版svg矢量图制作GUI
 ### 撤销/重做
 `ctrl+z`/`ctrl+y`
 <div style='display:flex'>
-<img src="./README_assets/2022-7-3_undo_redo.gif" alt="drawing" width="300"/>
+<img src="./README_assets/2022-7-3_undo_redo.gif" alt="drawing" width="600"/>
 </div>
 
 ### 清空
