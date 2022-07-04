@@ -29,6 +29,7 @@ const svg_height = svg_rect.height;
 
 // svg.appendChild(defs);  
 
+var myData_plain;
 
 var myData={
   Point:{
@@ -50,6 +51,91 @@ var myData={
   GroupRotPoint:null,
   CurrentGroup:null
 }
+
+function regenerate(myData_plain) {
+  svg.replaceChildren()
+  select_frame_element = document.createElementNS(SVG_NS,'rect')
+  svg.appendChild(select_frame_element)
+  select_frame_element.setAttribute('id','select_frame')
+  select_frame_element.setAttribute("stroke","black");
+  select_frame_element.setAttribute("stroke-width","1");
+  select_frame_element.setAttribute("fill","none");
+  select_frame_element.setAttribute("stroke-dasharray","2,2");
+
+  select_frame_element.setAttribute('x', 0);
+  select_frame_element.setAttribute('y', 0);
+
+  select_frame_element.setAttribute('width', 5);
+  select_frame_element.setAttribute('height', 5);
+  select_frame_element.setAttribute('visibility', 'hidden');
+  myData={
+    Point:{
+      max_id:0,
+      list:{}
+    },
+    Line:{
+      max_id:0,
+      list:{}
+    },
+    Group:{
+      max_id:0,
+      list:{}
+    },
+    Bezier:{
+      max_id:0,
+      list:{}
+    },
+    GroupRotPoint:null,
+    CurrentGroup:null
+  };
+
+  groupRotPoint = null
+  myData.Point.max_id = myData_plain.Point.max_id;
+  for (let i_point_plain in myData_plain.Point.list) {
+    myData.Point.list[i_point_plain] = new Point(myData_plain.Point.list[i_point_plain],true);
+  }
+  groupRotPoint = myData.Point.list[myData_plain.GroupRotPoint]
+  myData.GroupRotPoint = myData_plain.GroupRotPoint;
+
+  if(!myData_plain.GroupRotPoint){
+    console.log(`myData_plain.GroupRotPoint = ${myData_plain.GroupRotPoint}`);
+    console.log(groupRotPoint);
+  }
+  myData.Line.max_id = myData_plain.Line.max_id;
+  for (let i_line_plain in myData_plain.Line.list) {
+    myData.Line.list[i_line_plain] = new Line(myData_plain.Line.list[i_line_plain],true);
+    // myData.Line.list[i_line_plain].update_bbox()
+  }
+
+  myData.Bezier.max_id = myData_plain.Bezier.max_id;
+  for (let i_bezier_plain in myData_plain.Bezier.list) {
+    myData.Bezier.list[i_bezier_plain] = new Bezier(myData_plain.Bezier.list[i_bezier_plain],true);
+    // myData.Bezier.list[i_bezier_plain].update_bbox()
+  }
+
+  myData.Group.max_id = myData_plain.Group.max_id;
+  for (let i_group_plain in myData_plain.Group.list) {
+    myData.Group.list[i_group_plain] = new Group(myData_plain.Group.list[i_group_plain],true);
+    // myData.Group.list[i_group_plain].update_bbox();
+  }
+
+  currentGroup = myData.Group.list[myData_plain.CurrentGroup]
+  myData.CurrentGroup = myData_plain.CurrentGroup;
+
+
+  for (let i_line_plain in myData_plain.Line.list) {
+    myData.Line.list[i_line_plain].update_bbox()
+  }
+  for (let i_bezier_plain in myData_plain.Bezier.list) {
+    myData.Bezier.list[i_bezier_plain].update_bbox()
+  }
+  for (let i_group_plain in myData_plain.Group.list) {
+    myData.Group.list[i_group_plain].update_bbox();
+  }
+  //让旋转中心点保持在最前面，方便点取。
+  svg.appendChild(groupRotPoint.element_g)
+}
+
 
 var head=-1;
 var last_id=-1;
@@ -91,22 +177,23 @@ function setArchive() {
   // console.log(`存档`);
   if(head == last_id){
     if(last_id != maxLength_archive-1){
-      archive[++head] = JSON.stringify(myData)
+      archive[++head] = JSON.parse(JSON.stringify(myData))
       last_id++
     }else{
       for(let i=0;i<last_id;i++){
         archive[i] = archive[i+1]
       }
-      archive[last_id] = JSON.stringify(myData)
+      archive[last_id] = JSON.parse(JSON.stringify(myData))
     }
   }else{
-    archive[++head] = JSON.stringify(myData)
+    archive[++head] = JSON.parse(JSON.stringify(myData))
     last_id = head
   }
 }
 
 
 m = {};// the mouse position
+var draw_select = 1
 drawing = false;
 selecting = false;
 moving_group = false;
@@ -168,7 +255,6 @@ lines.addEventListener("mousedown", e => {
     drawing = true
     if(e.ctrlKey && l0){
       b = new Bezier({line1:l0,line2:l})
-      b.show_bbox()
     }
     
   }else if(draw_select==0){
@@ -213,6 +299,12 @@ lines.addEventListener("mousedown", e => {
             rot_relevent_lines_in_group[i_line] = null;
           }
         }
+      }
+      if(e.ctrlKey){
+        duplicate()
+        //Thanks to https://stackoverflow.com/a/49122553
+        Object.defineProperty(e, 'target', {writable: false, value: currentGroup.element_b});
+        currentGroup.mousedown_event(e)
       }
     }
   }
@@ -340,6 +432,10 @@ lines.addEventListener("mouseup", e => {
   }
   down_elements = false
   if (drawing) {
+    if(e.ctrlKey && l0){
+      myData.Group.list[b.parentGroup].update_bbox()
+      // console.log();
+    }
     setArchive()
     drawing = false;
   }
@@ -364,11 +460,28 @@ lines.addEventListener("mouseup", e => {
     m = oMousePosSVG(e);
     selecting = false;
     select_frame_element.setAttribute('visibility', 'hidden');
+    let group_in_selection = []
+    for(i_group in myData.Group.list){
+      if (i_group != currentGroup.id) {
+        let group = myData.Group.list[i_group]
+        let bbox = group.element_b.getBBox()
+
+        if (((bbox.x-x0)*(bbox.x-m.x)<0 && (bbox.y-y0)*(bbox.y-m.y)<0) &&
+            ((bbox.x+bbox.width-x0)*(bbox.x+bbox.width-m.x)<0 && (bbox.y+bbox.height-y0)*(bbox.y+bbox.height-m.y)<0)) {
+          currentGroup.addChild(group,false)
+          group_in_selection.push(`${group.id}`)
+          // console.log(`选中了组${group.id}`);
+        }
+      }
+    }
     for(let i_p in myData.Point.list){
       let p = myData.Point.list[i_p]
       if(p.id != groupRotPoint.id){
         if((p.x-x0)*(p.x-m.x)<0 && (p.y-y0)*(p.y-m.y)<0){
-          currentGroup.addChild(p)
+          if(Object.keys(p.parentGroup).filter(x => group_in_selection.includes(x)).length==0){
+            currentGroup.addChild(p,false)
+            // console.log(`选中了点${p.id}`);
+          }
         }
       }
     }
@@ -377,11 +490,15 @@ lines.addEventListener("mouseup", e => {
       let l_p1 = myData.Point.list[l.p1]
       let l_p2 = myData.Point.list[l.p2]
       if((l_p1.x-x0)*(l_p1.x-m.x)<0 && (l_p1.y-y0)*(l_p1.y-m.y)<0 && (l_p2.x-x0)*(l_p2.x-m.x)<0 && (l_p2.y-y0)*(l_p2.y-m.y)<0){
-        currentGroup.addChild(l)
+        if(Object.keys(l.parentGroup).filter(x => group_in_selection.includes(x)).length==0){
+          currentGroup.addChild(l,false)
+          // console.log(`选中了线${l.id}`);
+        }
       }
     }
     let selected_item = Object.keys(currentGroup.children)
     if(selected_item.length!=0){
+      currentGroup.update_bbox()
       currentGroup.show_bbox()
       // console.log(`你选中了${selected_item}`);
       currentGroup.element_b.setAttribute('pointer-events','all')
@@ -425,6 +542,10 @@ document.addEventListener("keydown", e => {
             e.preventDefault();
             confirmGroup();
             setArchive();
+            break;
+        case 'd':
+            e.preventDefault();
+            duplicate();
             break;
       }
     }
@@ -519,93 +640,6 @@ function getObj(this_type_id) {
 }
 
 
-function regenerate(myData_string) {
-  svg.replaceChildren()
-  select_frame_element = document.createElementNS(SVG_NS,'rect')
-  svg.appendChild(select_frame_element)
-  select_frame_element.setAttribute('id','select_frame')
-  select_frame_element.setAttribute("stroke","black");
-  select_frame_element.setAttribute("stroke-width","1");
-  select_frame_element.setAttribute("fill","none");
-  select_frame_element.setAttribute("stroke-dasharray","2,2");
-
-  select_frame_element.setAttribute('x', 0);
-  select_frame_element.setAttribute('y', 0);
-
-  select_frame_element.setAttribute('width', 5);
-  select_frame_element.setAttribute('height', 5);
-  select_frame_element.setAttribute('visibility', 'hidden');
-  myData={
-    Point:{
-      max_id:0,
-      list:{}
-    },
-    Line:{
-      max_id:0,
-      list:{}
-    },
-    Group:{
-      max_id:0,
-      list:{}
-    },
-    Bezier:{
-      max_id:0,
-      list:{}
-    },
-    GroupRotPoint:null,
-    CurrentGroup:null
-  };
-  
-  myData_plain = JSON.parse(myData_string)
-
-  groupRotPoint = null
-  myData.Point.max_id = myData_plain.Point.max_id;
-  for (let i_point_plain in myData_plain.Point.list) {
-    myData.Point.list[i_point_plain] = new Point(myData_plain.Point.list[i_point_plain],true);
-  }
-  groupRotPoint = myData.Point.list[myData_plain.GroupRotPoint]
-  myData.GroupRotPoint = myData_plain.GroupRotPoint;
-
-  if(!myData_plain.GroupRotPoint){
-    console.log(`myData_plain.GroupRotPoint = ${myData_plain.GroupRotPoint}`);
-    console.log(groupRotPoint);
-  }
-  myData.Line.max_id = myData_plain.Line.max_id;
-  for (let i_line_plain in myData_plain.Line.list) {
-    myData.Line.list[i_line_plain] = new Line(myData_plain.Line.list[i_line_plain],true);
-    // myData.Line.list[i_line_plain].update_bbox()
-  }
-
-  myData.Bezier.max_id = myData_plain.Bezier.max_id;
-  for (let i_bezier_plain in myData_plain.Bezier.list) {
-    myData.Bezier.list[i_bezier_plain] = new Bezier(myData_plain.Bezier.list[i_bezier_plain],true);
-    // myData.Bezier.list[i_bezier_plain].update_bbox()
-  }
-
-  myData.Group.max_id = myData_plain.Group.max_id;
-  for (let i_group_plain in myData_plain.Group.list) {
-    myData.Group.list[i_group_plain] = new Group(myData_plain.Group.list[i_group_plain],true);
-    // myData.Group.list[i_group_plain].update_bbox();
-  }
-
-  currentGroup = myData.Group.list[myData_plain.CurrentGroup]
-  myData.CurrentGroup = myData_plain.CurrentGroup;
-
-
-  for (let i_line_plain in myData_plain.Line.list) {
-    myData.Line.list[i_line_plain].update_bbox()
-  }
-  for (let i_bezier_plain in myData_plain.Bezier.list) {
-    myData.Bezier.list[i_bezier_plain].update_bbox()
-  }
-  for (let i_group_plain in myData_plain.Group.list) {
-    myData.Group.list[i_group_plain].update_bbox();
-  }
-  //让旋转中心点保持在最前面，方便点取。
-  svg.appendChild(groupRotPoint.element_g)
-}
-
-
 function showSnackbar(contents) {
   var x = document.getElementById("snackbar");
   x.textContent = contents
@@ -613,6 +647,264 @@ function showSnackbar(contents) {
   x.classList.add('show')
   setTimeout(function(){ x.classList.remove('show'); }, 2000);
 }
+
+
+function duplicate(){
+  myData_plain = JSON.parse(JSON.stringify(myData));
+  let myData_plain_origin = myData_plain;
+  let max_id_obj = {}
+  max_id_obj["Point"] = myData_plain_origin.Point.max_id;
+  max_id_obj["Line"] = myData_plain_origin.Line.max_id;
+  max_id_obj["Bezier"] = myData_plain_origin.Bezier.max_id;
+  max_id_obj["Group"] = myData_plain_origin.Group.max_id;
+  
+  duplet(currentGroup, max_id_obj, myData_plain_origin, myData_plain)
+
+  myData_plain.Line.max_id = myData_plain_origin.Line.max_id * 2
+  myData_plain.Point.max_id = myData_plain_origin.Point.max_id * 2
+  myData_plain.Bezier.max_id = myData_plain_origin.Bezier.max_id * 2
+  myData_plain.Group.max_id = myData_plain_origin.Group.max_id * 2
+
+  
+  regenerate(myData_plain)
+  currentGroup.show_bbox()
+  setArchive();
+}
+
+function duplet(target_group, max_id_obj, myData_plain_origin, myData_plain) {
+  let max_id_point = max_id_obj["Point"]
+  let max_id_line = max_id_obj["Line"]
+  let max_id_bezier = max_id_obj["Bezier"]
+  let max_id_group = max_id_obj["Group"]
+
+  let iscurrentGroup = (target_group.id == currentGroup.id)
+  let id_old_group;
+  let id_new_group;
+  if (!iscurrentGroup) {
+    id_old_group = target_group.id
+    id_new_group = id_old_group + max_id_group
+    if (!myData_plain.Group.list.hasOwnProperty(id_new_group)) {
+      myData_plain.Group.list[id_new_group] = _.cloneDeep(myData_plain_origin.Group.list[id_old_group])
+      myData_plain.Group.list[id_new_group].id = id_new_group
+      myData_plain.Group.list[id_new_group].type_id = `Group${id_new_group}`
+    }
+  }
+
+  let children_old = {...target_group.children};
+  // console.log(`children_old`);
+  // console.log(children_old);
+  let children_new = {};
+  for(let i_child in children_old){
+    let [type,id_old] = i_child.split(/(?<=[^\d])(?=\d)/)
+    id_old = parseInt(id_old)
+    let id_new;
+    switch (type) {
+      case 'Point':
+        break;
+      case 'Line':
+        //self: Line
+        id_new = id_old + max_id_line
+        children_new[`Line${id_new}`] = null
+        if (!myData_plain.Line.list.hasOwnProperty(id_new)) {
+          myData_plain.Line.list[id_new] = _.cloneDeep(myData_plain_origin.Line.list[id_old])
+          myData_plain.Line.list[id_new].id = id_new
+          myData_plain.Line.list[id_new].type_id = `Line${id_new}`
+        }
+        if (!iscurrentGroup) {
+          delete myData_plain.Line.list[id_new].parentGroup[id_old_group] //parentGroup
+          myData_plain.Line.list[id_new].parentGroup[id_new_group] = null
+        }
+
+        //Point
+        p1_old = myData_plain_origin.Line.list[id_old].p1;
+        p2_old = myData_plain_origin.Line.list[id_old].p2;
+        p1_new = p1_old + max_id_point
+        p2_new = p2_old + max_id_point
+        if (!myData_plain.Point.list.hasOwnProperty(p1_new)) {
+          myData_plain.Point.list[p1_new] = _.cloneDeep(myData_plain_origin.Point.list[p1_old])
+          myData_plain.Point.list[p1_new].id = p1_new
+          myData_plain.Point.list[p1_new].type_id = `Point${p1_new}`
+        }
+        delete myData_plain.Point.list[p1_new].line[id_old];
+        myData_plain.Point.list[p1_new].line[id_new] = null;
+        children_new[`Point${p1_new}`] = null //target_group
+        myData_plain.Line.list[id_new].p1 = p1_new //self: Line
+       
+        
+        if (!iscurrentGroup) {
+          delete myData_plain.Point.list[p1_new].parentGroup[id_old_group] //parentGroup
+          myData_plain.Point.list[p1_new].parentGroup[id_new_group] = null
+        }
+
+        if (!myData_plain.Point.list.hasOwnProperty(p2_new)) {
+          myData_plain.Point.list[p2_new] = _.cloneDeep(myData_plain_origin.Point.list[p2_old])
+          myData_plain.Point.list[p2_new].id = p2_new
+          myData_plain.Point.list[p2_new].type_id = `Point${p2_new}`
+        }
+        delete myData_plain.Point.list[p2_new].line[id_old];
+        myData_plain.Point.list[p2_new].line[id_new] = null;
+        children_new[`Point${p2_new}`] = null //target_group
+        myData_plain.Line.list[id_new].p2 = p2_new //self: Line
+
+        if (!iscurrentGroup) {
+          delete myData_plain.Point.list[p2_new].parentGroup[id_old_group] //parentGroup
+          myData_plain.Point.list[p2_new].parentGroup[id_new_group] = null
+        }
+
+        break;
+      case 'Bezier':
+        // console.log(`bezier`);
+        //self: Bezier
+        id_new = id_old + max_id_bezier
+        children_new[`Bezier${id_new}`] = null
+        if (!myData_plain.Bezier.list.hasOwnProperty(id_new)) {
+          myData_plain.Bezier.list[id_new] = _.cloneDeep(myData_plain_origin.Bezier.list[id_old])
+          myData_plain.Bezier.list[id_new].id = id_new
+          myData_plain.Bezier.list[id_new].type_id = `Bezier${id_new}`
+        }
+        if (!iscurrentGroup) {
+          myData_plain.Bezier.list[id_new].parentGroup = id_new_group //parentGroup
+          myData_plain.Group.list[id_new_group].bezier = id_new //target_group
+          // console.log(`id_old_group ${id_old_group}->\nid_new_group${id_new_group}`);
+          // console.log(myData_plain.Bezier.list);
+        }
+
+        //Point
+        p1_old = myData_plain_origin.Bezier.list[id_old].p1;
+        p2_old = myData_plain_origin.Bezier.list[id_old].p2;
+        p3_old = myData_plain_origin.Bezier.list[id_old].p3;
+        p4_old = myData_plain_origin.Bezier.list[id_old].p4;
+        p1_new = p1_old + max_id_point
+        p2_new = p2_old + max_id_point
+        p3_new = p3_old + max_id_point
+        p4_new = p4_old + max_id_point
+
+        if (!myData_plain.Point.list.hasOwnProperty(p1_new)) {
+          myData_plain.Point.list[p1_new] = _.cloneDeep(myData_plain_origin.Point.list[p1_old])
+          myData_plain.Point.list[p1_new].id = p1_new
+          myData_plain.Point.list[p1_new].type_id = `Point${p1_new}`
+        }
+
+        delete myData_plain.Point.list[p1_new].bezier[id_old];
+        myData_plain.Point.list[p1_new].bezier[id_new] = null;
+        children_new[`Point${p1_new}`] = null //target_group
+        myData_plain.Bezier.list[id_new].p1 = p1_new //self: Bezier
+
+        if (!iscurrentGroup) {
+          delete myData_plain.Point.list[p1_new].parentGroup[id_old_group] //parentGroup
+          myData_plain.Point.list[p1_new].parentGroup[id_new_group] = null
+        }
+
+
+        if (!myData_plain.Point.list.hasOwnProperty(p2_new)) {
+          myData_plain.Point.list[p2_new] = _.cloneDeep(myData_plain_origin.Point.list[p2_old])
+          myData_plain.Point.list[p2_new].id = p2_new
+          myData_plain.Point.list[p2_new].type_id = `Point${p2_new}`
+        }
+        delete myData_plain.Point.list[p2_new].bezier[id_old];
+        myData_plain.Point.list[p2_new].bezier[id_new] = null;
+        children_new[`Point${p2_new}`] = null //target_group
+        myData_plain.Bezier.list[id_new].p2 = p2_new //self: Bezier
+        delete myData_plain.Bezier.list[id_new].control_widgets[`Point${p2_old}`] //self: Bezier
+        myData_plain.Bezier.list[id_new].control_widgets[`Point${p2_new}`] = null //self: Bezier
+
+        if (!iscurrentGroup) {
+          delete myData_plain.Point.list[p2_new].parentGroup[id_old_group] //parentGroup
+          myData_plain.Point.list[p2_new].parentGroup[id_new_group] = null
+        }
+
+
+        if (!myData_plain.Point.list.hasOwnProperty(p3_new)) {
+          myData_plain.Point.list[p3_new] = _.cloneDeep(myData_plain_origin.Point.list[p3_old])
+          myData_plain.Point.list[p3_new].id = p3_new
+          myData_plain.Point.list[p3_new].type_id = `Point${p3_new}`
+        }
+        delete myData_plain.Point.list[p3_new].bezier[id_old];
+        myData_plain.Point.list[p3_new].bezier[id_new] = null;
+        children_new[`Point${p3_new}`] = null //target_group
+        myData_plain.Bezier.list[id_new].p3 = p3_new //self: Bezier
+        delete myData_plain.Bezier.list[id_new].control_widgets[`Point${p3_old}`] //self: Bezier
+        myData_plain.Bezier.list[id_new].control_widgets[`Point${p3_new}`] = null //self: Bezier
+
+        if (!iscurrentGroup) {
+          delete myData_plain.Point.list[p3_new].parentGroup[id_old_group] //parentGroup
+          myData_plain.Point.list[p3_new].parentGroup[id_new_group] = null
+        }
+
+
+        if (!myData_plain.Point.list.hasOwnProperty(p4_new)) {
+          myData_plain.Point.list[p4_new] = _.cloneDeep(myData_plain_origin.Point.list[p4_old])
+          myData_plain.Point.list[p4_new].id = p4_new
+          myData_plain.Point.list[p4_new].type_id = `Point${p4_new}`
+        }
+        delete myData_plain.Point.list[p4_new].bezier[id_old];
+        myData_plain.Point.list[p4_new].bezier[id_new] = null;
+        children_new[`Point${p4_new}`] = null //target_group
+        myData_plain.Bezier.list[id_new].p4 = p4_new //self: Bezier
+
+        if (!iscurrentGroup) {
+          delete myData_plain.Point.list[p4_new].parentGroup[id_old_group] //parentGroup
+          myData_plain.Point.list[p4_new].parentGroup[id_new_group] = null
+        }
+
+
+        //Line
+        line1_old = myData_plain_origin.Bezier.list[id_old].line1;
+        line2_old = myData_plain_origin.Bezier.list[id_old].line2;
+        line1_new = line1_old + max_id_line
+        line2_new = line2_old + max_id_line
+        if (!myData_plain.Line.list.hasOwnProperty(line1_new)) {
+          myData_plain.Line.list[line1_new] = _.cloneDeep(myData_plain_origin.Line.list[line1_old])
+          myData_plain.Line.list[line1_new].id = line1_new
+          myData_plain.Line.list[line1_new].type_id = `Line${line1_new}`
+        }
+        delete myData_plain.Line.list[line1_new].bezier[id_old];
+        myData_plain.Line.list[line1_new].bezier[id_new] = null;
+        children_new[`Line${line1_new}`] = null //target_group
+        myData_plain.Bezier.list[id_new].line1 = line1_new //self: Bezier
+        delete myData_plain.Bezier.list[id_new].control_widgets[`Line${line1_old}`] //self: Bezier
+        myData_plain.Bezier.list[id_new].control_widgets[`Line${line1_new}`] = null //self: Bezier
+        
+        if (!iscurrentGroup) {
+          delete myData_plain.Line.list[line1_new].parentGroup[id_old_group] //parentGroup
+          myData_plain.Line.list[line1_new].parentGroup[id_new_group] = null
+        }
+
+
+        if (!myData_plain.Line.list.hasOwnProperty(line2_new)) {
+          myData_plain.Line.list[line2_new] = _.cloneDeep(myData_plain_origin.Line.list[line2_old])
+          myData_plain.Line.list[line2_new].id = line2_new
+          myData_plain.Line.list[line2_new].type_id = `Line${line2_new}`
+        }
+        delete myData_plain.Line.list[line2_new].bezier[id_old];
+        myData_plain.Line.list[line2_new].bezier[id_new] = null;
+        children_new[`Line${line2_new}`] = null //target_group
+        myData_plain.Bezier.list[id_new].line2 = line2_new //self: Bezier
+        delete myData_plain.Bezier.list[id_new].control_widgets[`Line${line2_old}`] //self: Bezier
+        myData_plain.Bezier.list[id_new].control_widgets[`Line${line2_new}`] = null //self: Bezier
+        
+        if (!iscurrentGroup) {
+          delete myData_plain.Line.list[line2_new].parentGroup[id_old_group] //parentGroup
+          myData_plain.Line.list[line2_new].parentGroup[id_new_group] = null
+        }
+
+
+        break;
+      case 'Group':
+        id_new = id_old + max_id_group
+        // console.log(`you child is a Group`);
+        children_new[`Group${id_new}`] = null
+        duplet(getObj(i_child), max_id_obj, myData_plain_origin, myData_plain)
+        break;
+    }
+  }
+  if (!iscurrentGroup) {
+    myData_plain.Group.list[id_new_group].children = children_new
+  }else{
+    myData_plain.Group.list[currentGroup.id].children = children_new
+  }
+}
+
 
 // function setArchive() {
 //   // arPoints = {...myData.Point.list}

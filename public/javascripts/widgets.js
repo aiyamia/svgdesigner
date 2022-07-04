@@ -1,5 +1,3 @@
-let draw_select = 1
-
 const select_btn = document.getElementById('select');
 const draw_btn = document.getElementById('draw');
 

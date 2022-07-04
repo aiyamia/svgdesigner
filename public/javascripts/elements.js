@@ -260,7 +260,9 @@ class Point extends Element {
     }
     myData.Point.max_id = 0;
     myData.Point.list = {}
+    groupRotPoint = null
     groupRotPoint = new Point({x:100,y:100,color:'orange',size:10})
+    myData.GroupRotPoint = groupRotPoint.id
   }
 }
 
@@ -410,13 +412,16 @@ class Group {
       hide_all_bbox()
       info_line.setAttribute('visibility','hidden')
 
-      if(e.ctrlKey){
-        if(Object.keys(currentGroup.children).includes(`${this_target.constructor.name}${this_target.id}`)){
+      if(e.shiftKey){
+        //此处的限制很重要，不然会添加自身引起栈溢出
+        if(Object.keys(currentGroup.children).length>1 && Object.keys(currentGroup.children).includes(`${this_target.type_id}`)){
           currentGroup.removeChild(this_target)
-          // console.log(`当前this：\n${Object.keys(currentGroup.children)}`);
+          // console.log(`删除--当前this：\n${Object.keys(currentGroup.children)}`);
         }else{
-          currentGroup.addChild(this_target)
-          // console.log(`当前this：\n${Object.keys(currentGroup.children)}`);
+          if(this_target.type_id != currentGroup.type_id){
+            currentGroup.addChild(this_target)
+            // console.log(`添加--当前this：\n${Object.keys(currentGroup.children)}`);
+          }
         }
       }else{
         if(this_target.constructor.name!="Group"){
@@ -473,7 +478,7 @@ class Group {
       // console.log(`elements.js mousemove`);
       if(Object.keys(this.children).length==1 && Object.keys(this.children)[0].includes('Point')){
         let point = getObj(Object.keys(this.children)[0])
-        if(e.ctrlKey){
+        if(e.shiftKey){
           snapping = true;
           point.snapshow();
         }else{
@@ -495,7 +500,7 @@ class Group {
       if(Object.keys(this.children).length==1 && Object.keys(this.children)[0].includes('Point')){
         let point = getObj(Object.keys(this.children)[0])
         down_elements = false
-        if(e.ctrlKey){
+        if(e.shiftKey){
           if(id_target){
             point.snap()
           }
@@ -515,6 +520,7 @@ class Group {
   moveChildren(dx,dy){
     let p = {}
     let child;
+    // console.log(this.children);
     for(let name in this.children){
       child = getObj(name);
       if(name.includes("Line")){
@@ -566,6 +572,7 @@ class Group {
     for(let name in this.children){
       let this_obj = getObj(name)
       if(name.includes('Group')){
+        // console.log(`组内有组${name}`);
         if(recursive){
           try {
             this_obj.update_bbox()
@@ -603,9 +610,11 @@ class Group {
       }
     }
   }
-  addChild(obj){
+  addChild(obj,updatebbx=true){
     this.children[obj.type_id] = null
-    this.update_bbox()
+    if(updatebbx){
+      this.update_bbox()
+    }
     obj.parentGroup[this.id] = null
   }
   removeChild(obj){
@@ -665,15 +674,15 @@ class Group {
         line_child.push(i_child)
       }
     }
-    for(let i_child in group_child){
-      if(getObj(i_child).contains(obj_type_id)){
+    for(let i_group_child in group_child){
+      if(getObj(group_child[i_group_child]).contains(obj_type_id)){
         return true
       }
     }
     if(obj_type_id.includes("Point")){
-      for(let i_child in line_child){
+      for(let i_line_child in line_child){
         let obj_id = obj_type_id.replace('Point','')
-        if(getObj(i_child).p1 == obj_id || getObj(i_child).p2 == obj_id){
+        if(getObj(line_child[i_line_child]).p1 == obj_id || getObj(line_child[i_line_child]).p2 == obj_id){
           return true
         }
       }
@@ -808,6 +817,10 @@ class Bezier extends Element {
     if (!regenerate) {
       let bG = new Group()
       bG.bezier = this.id
+      bG.addChild(this_p1)
+      bG.addChild(this_p2)
+      bG.addChild(this_p3)
+      bG.addChild(this_p4)
       bG.addChild(obj.line1)
       bG.addChild(obj.line2)
       bG.addChild(this)
