@@ -100,7 +100,7 @@ class Point extends Element {
       this.x = obj.x;
       this.y = obj.y;
       this.size = obj.size || 5;
-      this.color = obj.color || 'black';
+      this.color = obj.color || point_color;
       this.edgewidth = obj.edgewidth || '1';
       this.edgecolor = obj.edgecolor || 'black';
     }
@@ -180,7 +180,7 @@ class Point extends Element {
     let d_min = Math.min(...d_list)
     if(d_min<50){
       if(id_target){
-        myData.Point.list[id_target].color = 'black'
+        myData.Point.list[id_target].color = point_color
         myData.Point.list[id_target].edgecolor = 'black'
         myData.Point.list[id_target].update()
         id_target = null;
@@ -191,7 +191,7 @@ class Point extends Element {
       myData.Point.list[id_target].update()
     }else{
       if(id_target){
-        myData.Point.list[id_target].color = 'black'
+        myData.Point.list[id_target].color = point_color
         myData.Point.list[id_target].edgecolor = 'black'
         myData.Point.list[id_target].update()
         id_target = null;
@@ -260,7 +260,7 @@ class Point extends Element {
     }else{
       //本次吸附的跳点 是 旋转中心点，不删除目标点
       groupRotPoint.groupRotSnapPoint = point_target.id
-      point_target.color = 'black'
+      point_target.color = point_color
       point_target.edgecolor = 'black'
       point_target.update()
     }
@@ -305,7 +305,7 @@ class Line extends Element {
       obj.p1.line[this.id] = null;
       obj.p2.line[this.id] = null;
       this.width = obj.width || 2;
-      this.color = obj.color || '#000';
+      this.color = obj.color || stroke_color;
       
       this.angle_in_deg = Math.atan2(obj.p2.y-obj.p1.y,obj.p2.x-obj.p1.x) * (180/Math.PI)
     }
@@ -498,7 +498,7 @@ class Group {
         }else{
           snapping = false;
           if(id_target){
-            myData.Point.list[id_target].color = 'black'
+            myData.Point.list[id_target].color = point_color
             myData.Point.list[id_target].edgecolor = 'black'
             myData.Point.list[id_target].update()
             id_target = null;
@@ -521,7 +521,7 @@ class Group {
         }else{
           snapping = false;
           if(id_target){
-            myData.Point.list[id_target].color = 'black'
+            myData.Point.list[id_target].color = point_color
             myData.Point.list[id_target].edgecolor = 'black'
             myData.Point.list[id_target].update()
             id_target = null;
@@ -630,23 +630,23 @@ class Group {
       let [child_type,child_id] = name.split(/(?<=[^\d])(?=\d)/)
       switch (child_type) {
         case 'Group':
-          child_obj.element_b.setAttribute('fill','lightblue')
+          child_obj.element_b.setAttribute('fill',group_color_selected)
           child_obj.element_b.setAttribute('opacity','0.5')
           child_obj.element_b.setAttribute('visibility','visible')
           break;
         case 'Point':
           if(isVisible(child_obj.element_g) && child_obj.id != groupRotPoint.id){
-            child_obj.element_c.setAttribute('fill','red')
+            child_obj.element_c.setAttribute('fill',point_color_selected)
           }
           break;
         case 'Line':
           if(isVisible(child_obj.element_g)){
-            child_obj.element_c.setAttribute('stroke','red')
+            child_obj.element_c.setAttribute('stroke',stroke_color_selected)
           }
           break;
         case 'Bezier':
           if(isVisible(child_obj.element_g)){
-            child_obj.element_c.setAttribute('stroke','red')
+            child_obj.element_c.setAttribute('stroke',stroke_color_selected)
           }
           break;
         default:
@@ -666,17 +666,17 @@ class Group {
           break;
         case 'Point':
           if(isVisible(child_obj.element_g) && child_obj.id != groupRotPoint.id){
-            child_obj.element_c.setAttribute('fill','black')
+            child_obj.element_c.setAttribute('fill',point_color)
           }
           break;
         case 'Line':
           if(isVisible(child_obj.element_g)){
-            child_obj.element_c.setAttribute('stroke','#000')
+            child_obj.element_c.setAttribute('stroke',stroke_color)
           }
           break;
         case 'Bezier':
           if(isVisible(child_obj.element_g)){
-            child_obj.element_c.setAttribute('stroke','#000')
+            child_obj.element_c.setAttribute('stroke',stroke_color)
           }
           break;
         default:
@@ -841,7 +841,7 @@ class Bezier extends Element {
       this.p3 = obj.line2.p2;
       this.p4 = obj.line2.p1;
       this.width = obj.width || 2;
-      this.color = obj.color || '#000';
+      this.color = obj.color || stroke_color;
       
       this_p1 = myData.Point.list[this.p1]
       this_p2 = myData.Point.list[this.p2]

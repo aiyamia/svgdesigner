@@ -193,7 +193,8 @@ function setArchive() {
 
 
 m = {};// the mouse position
-var draw_select = 1
+var draw_select = 0;
+var day_night = 0;
 drawing = false;
 selecting = false;
 moving_group = false;
@@ -267,6 +268,7 @@ lines.addEventListener("mousedown", e => {
       }
     }
     // console.log(`draw.js mousedown`);
+    
     if(!down_elements){
       hide_all_bbox()
       for(let i_b in myData.Bezier.list){
@@ -280,6 +282,7 @@ lines.addEventListener("mousedown", e => {
       y0 = m.y
 
       currentGroup.element_b.setAttribute('pointer-events','initial')
+          
     }else{
       if(e.altKey && groupRotPoint.groupRotSnapPoint){
         // degree_cum = 0
@@ -402,20 +405,24 @@ lines.addEventListener("mousemove", e => {
       // }
       group_to_move.rotChildren(dtheta_in_deg)
     }else{
-      if(groupRotPoint.groupRotSnapPoint){
-        // console.log(`groupRotPoint.groupRotSnapPoint`);
-        if(group_to_move.contains(`Point${groupRotPoint.groupRotSnapPoint}`)||group_to_move.contains(groupRotPoint.type_id)){
-          // console.log(`动了`);
-          groupRotPoint.groupRotSnapPoint = null
-        }
-      }
-      
       m = oMousePosSVG(e);
       dx = m.x - x0
       dy = m.y - y0
-      x0 = m.x
-      y0 = m.y
-      group_to_move.moveChildren(dx,dy)
+      if(Math.abs(dx)>0||Math.abs(dy)>0){
+        // console.log(`dx = ${dx};dy = ${dy}`);
+        if(groupRotPoint.groupRotSnapPoint){
+          // console.log(`groupRotPoint.groupRotSnapPoint`);
+          if(group_to_move.contains(`Point${groupRotPoint.groupRotSnapPoint}`)||group_to_move.contains(groupRotPoint.type_id)){
+            // console.log(`动了`);
+            groupRotPoint.groupRotSnapPoint = null
+          }
+        }
+        x0 = m.x
+        y0 = m.y
+        group_to_move.moveChildren(dx,dy)
+      }else{
+        // console.log(`没动`);
+      }
     }
     hide_all_bbox()
   }
@@ -924,6 +931,7 @@ function isVisible(domElement) {
   !domElement.hasAttribute('visibility')
 }
 
+// setInterval(function () {console.log(`heartbreak${myData.Point.list[1].groupRotSnapPoint}`);}, 1000);
 // function setArchive() {
 //   // arPoints = {...myData.Point.list}
 //   // arLines = {...myData.Line.list}

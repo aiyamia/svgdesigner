@@ -3,12 +3,14 @@
   --container-color:#1c2136;
   --container-border-color:#080a27;
   --font-color: seagreen;
-  --widgets-pad-background:#434141;
+  --widgets-pad-background:#323131;
   --widgets-pad-box-shadow: 1px 1px 25px 0px black inset, 1px -1px 11px 0px black inset;
   --widgets-button-background:#897f7f;
-  --widgets-button-hover-background:#bbb6a9;
+  --widgets-button-hover-background:#897f7f;
   --widgets-button-border-radius:3px;
   --widgets-button-box-shadow: 1px 1px 0px 0px rgb(0 0 0) inset, -1px 1px 0px 0px black inset, 1px -1px 0px 0px black inset, -1px -1px 0px 0px black inset;
+  --button-img-hover-filter:invert(92%) sepia(1%) saturate(2865%) hue-rotate(314deg) brightness(78%) contrast(92%);
+  --button-img-filter: none;
 }
 
 html{
@@ -21,8 +23,9 @@ html{
   background: gainsboro;
   background: dimgrey;
   background: var(--html-color);
+  overflow: hidden;
 }
-#theme_options{
+/* #theme_options{
   outline: none;
   color: var(--font-color);
   background: var(--html-color);
@@ -30,7 +33,7 @@ html{
   border: black 1px solid;
   border-radius: 5px;
   box-shadow: 1px 1px 2px black inset, 1px -1px 2px black inset;
-}
+} */
 body {
   display: flex;
   flex-direction: column;
@@ -40,13 +43,13 @@ body {
   font: 14px "Lucida Grande", Helvetica, Arial, sans-serif;
 }
 
-#settings{
+/* #settings{
   width: 80%;
   display: flex;
   justify-content: end;
   padding: 5px;
   margin: 5px;
-}
+} */
 
 #operate{
   display: flex;
@@ -59,6 +62,7 @@ a {
 
 
 #container{
+  border-radius: 10px;
   border: var(--container-border-color) 5px solid;
   display: flex;
   align-items: left;
@@ -67,7 +71,7 @@ a {
   background: var(--container-color);
 }
 
-.widgets{
+#widgets{
   border-radius: 5px;
   padding: 3px;
   margin-right: 5px;
@@ -77,7 +81,8 @@ a {
   box-shadow: var(--widgets-pad-box-shadow);
 }
 
-.widgets button{
+#widgets button{
+  padding: 5px;
   border: none;
   border-radius: var(--widgets-button-border-radius);
   box-shadow: var(--widgets-button-box-shadow);
@@ -87,15 +92,31 @@ a {
   background-color: var(--widgets-button-background);
   cursor: pointer;
 }
-.widgets button:hover{
+#widgets button:hover{
   background-color: var(--widgets-button-hover-background);
 }
+#widgets button img{
+  filter: var(--button-img-filter);
+}
+#widgets button img{
+  filter: var(--button-img-filter);
+}
+.widgetsButtonImgNight:hover {
+  filter: invert(92%) sepia(1%) saturate(2865%) hue-rotate(314deg) brightness(78%) contrast(92%) !important;
+}
+.widgetsButtonImgDay:hover{
+  filter: var(--button-img-filter);
+}
+
 #draw{
   background-color: orange;
 }
-#clear:hover{
-  background-color: lightcoral;
-}
+/* #clear img:hover{
+  filter: invert(92%) sepia(1%) saturate(2865%) hue-rotate(314deg) brightness(78%) contrast(92%);
+} */
+/* #theme:hover{
+  background-color: var(--theme-button-hover-background);
+} */
 #clear:active{
   background-color: black;
 }
