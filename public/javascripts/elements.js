@@ -401,6 +401,7 @@ class Group {
     volumn_init.setAttribute('id','volumn_init')
     volumn_init.setAttribute('width',100)
     volumn_init.setAttribute('height',100)
+    volumn_init.setAttribute('visibility','hidden')
     group.appendChild(volumn_init)
     svg.appendChild(group)
   

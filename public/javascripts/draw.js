@@ -57,7 +57,7 @@ function regenerate(myData_plain) {
   select_frame_element = document.createElementNS(SVG_NS,'rect')
   svg.appendChild(select_frame_element)
   select_frame_element.setAttribute('id','select_frame')
-  select_frame_element.setAttribute("stroke","black");
+  select_frame_element.setAttribute("stroke",box_color);
   select_frame_element.setAttribute("stroke-width","1");
   select_frame_element.setAttribute("fill","none");
   select_frame_element.setAttribute("stroke-dasharray","2,2");
@@ -227,7 +227,7 @@ var l;
 var select_frame_element = document.createElementNS(SVG_NS,'rect')
 svg.appendChild(select_frame_element)
 select_frame_element.setAttribute('id','select_frame')
-select_frame_element.setAttribute("stroke","black");
+select_frame_element.setAttribute("stroke",box_color);
 select_frame_element.setAttribute("stroke-width","1");
 select_frame_element.setAttribute("fill","none");
 select_frame_element.setAttribute("stroke-dasharray","2,2");
@@ -330,6 +330,7 @@ lines.addEventListener("mousemove", e => {
     select_frame_element.setAttribute('width', Math.abs(m.x-x0));
     select_frame_element.setAttribute('height', Math.abs(m.y-y0));
     select_frame_element.setAttribute('visibility', 'visible');
+    select_frame_element.setAttribute('stroke', box_color);
   }
   if(moving_group){
     if(e.altKey){
@@ -597,7 +598,7 @@ function deConfirmGroup() {
 
 function generateBboxElement(element){
   let rectBBox = document.createElementNS(SVG_NS, "rect");
-  rectBBox.setAttribute("stroke","black");
+  rectBBox.setAttribute("stroke",box_color);
   rectBBox.setAttribute("stroke-width","1");
   rectBBox.setAttribute("fill","none");
   rectBBox.setAttribute("stroke-dasharray","2,2");
@@ -630,6 +631,7 @@ function updateBboxElement(rectBBox,element,compact=false){
 
   rectBBox.setAttribute('width', w);
   rectBBox.setAttribute('height', h);
+  rectBBox.setAttribute('stroke', box_color);
   // rectBBox.setAttribute('visibility', 'visible');
   return rectBBox
 }
