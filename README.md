@@ -14,6 +14,9 @@ web版svg矢量图制作GUI
 ### 快捷绘图
 在默认的选择模式下按住`z`可以进行快捷绘图
 
+### 复制
+`ctrl`+拖动
+
 ### 点的磁吸
 拖动点时按住`shift`。
 <div style='display:flex'>
