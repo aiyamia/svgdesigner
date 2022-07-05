@@ -27,7 +27,7 @@ web版svg矢量图制作GUI
 </div>
 
 ### 绘制Bezier曲线
-绘制模式下，先画一条线，然后按住`ctrl`再画另一条。
+绘制模式下，先画一条线，然后按住`ctrl`再画另一条。（注意在快捷绘图模式下，需要同时按住`z`）
 <div style='display:flex'>
 <img src="./README_assets/2022-6-29-1_bezier.gif" alt="drawing" width="300"/>
 </div>
