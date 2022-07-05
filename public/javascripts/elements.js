@@ -234,10 +234,24 @@ class Point extends Element {
       }
       for(let i_bezier in beziers_target){
         let target_bezier = myData.Bezier.list[i_bezier]
+        delete myData.Group.list[target_bezier.parentGroup].children[`Point${target_bezier.p1}`]
+        delete myData.Group.list[target_bezier.parentGroup].children[`Point${target_bezier.p2}`]
+        delete myData.Group.list[target_bezier.parentGroup].children[`Point${target_bezier.p3}`]
+        delete myData.Group.list[target_bezier.parentGroup].children[`Point${target_bezier.p4}`]
+        
         target_bezier.p1 = myData.Line.list[target_bezier.line1].p1;
         target_bezier.p2 = myData.Line.list[target_bezier.line1].p2;
         target_bezier.p3 = myData.Line.list[target_bezier.line2].p2;
         target_bezier.p4 = myData.Line.list[target_bezier.line2].p1;
+
+        myData.Group.list[target_bezier.parentGroup].children[`Point${target_bezier.p1}`] = null
+        myData.Group.list[target_bezier.parentGroup].children[`Point${target_bezier.p2}`] = null
+        myData.Group.list[target_bezier.parentGroup].children[`Point${target_bezier.p3}`] = null
+        myData.Group.list[target_bezier.parentGroup].children[`Point${target_bezier.p4}`] = null
+        
+        if(!this.parentGroup.hasOwnProperty(target_bezier.parentGroup)){
+          this.parentGroup[target_bezier.parentGroup] = null
+        }
       }
       for(let i_group in groups_target){
         let target_group = myData.Group.list[i_group]
@@ -516,11 +530,9 @@ class Group {
       }
     }
   }
-
-  moveChildren(dx,dy){
+  getMovePoints(){
     let p = {}
     let child;
-    // console.log(this.children);
     for(let name in this.children){
       child = getObj(name);
       if(name.includes("Line")){
@@ -534,33 +546,18 @@ class Group {
         p[child.p3] = null
         p[child.p4] = null
       }else if(name.includes("Group")){
-        child.moveChildren(dx,dy)
+        p = {...child.getMovePoints(),...p}
       }
     }
-    for(let i_p in p){
+    return p
+  }
+  moveChildren(dx,dy){
+    for(let i_p in this.getMovePoints()){
       myData.Point.list[i_p].move(dx,dy)
     }
   }
   rotChildren(dtheta_in_deg){
-    let p = {}
-    let child;
-    for(let name in this.children){
-      child = getObj(name);
-      if(name.includes("Line")){
-        p[child.p1] = null
-        p[child.p2] = null
-      }else if(name.includes("Point")){
-        p[child.id] = null
-      }else if(name.includes("Bezier")){
-        p[child.p1] = null
-        p[child.p2] = null
-        p[child.p3] = null
-        p[child.p4] = null
-      }else if(name.includes("Group")){
-        child.rotChildren(dtheta_in_deg)
-      }
-    }
-    for(let i_p in p){
+    for(let i_p in this.getMovePoints()){
       myData.Point.list[i_p].rot(dtheta_in_deg)
     }
   }

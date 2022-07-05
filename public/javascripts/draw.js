@@ -470,7 +470,7 @@ lines.addEventListener("mouseup", e => {
             ((bbox.x+bbox.width-x0)*(bbox.x+bbox.width-m.x)<0 && (bbox.y+bbox.height-y0)*(bbox.y+bbox.height-m.y)<0)) {
           currentGroup.addChild(group,false)
           group_in_selection.push(`${group.id}`)
-          // console.log(`选中了组${group.id}`);
+          console.log(`选中了组${group.id}`);
         }
       }
     }
@@ -480,7 +480,7 @@ lines.addEventListener("mouseup", e => {
         if((p.x-x0)*(p.x-m.x)<0 && (p.y-y0)*(p.y-m.y)<0){
           if(Object.keys(p.parentGroup).filter(x => group_in_selection.includes(x)).length==0){
             currentGroup.addChild(p,false)
-            // console.log(`选中了点${p.id}`);
+            console.log(`选中了点${p.id}`);
           }
         }
       }
@@ -492,7 +492,7 @@ lines.addEventListener("mouseup", e => {
       if((l_p1.x-x0)*(l_p1.x-m.x)<0 && (l_p1.y-y0)*(l_p1.y-m.y)<0 && (l_p2.x-x0)*(l_p2.x-m.x)<0 && (l_p2.y-y0)*(l_p2.y-m.y)<0){
         if(Object.keys(l.parentGroup).filter(x => group_in_selection.includes(x)).length==0){
           currentGroup.addChild(l,false)
-          // console.log(`选中了线${l.id}`);
+          console.log(`选中了线${l.id}`);
         }
       }
     }
@@ -500,7 +500,7 @@ lines.addEventListener("mouseup", e => {
     if(selected_item.length!=0){
       currentGroup.update_bbox()
       currentGroup.show_bbox()
-      // console.log(`你选中了${selected_item}`);
+      console.log(`你选中了${selected_item}`);
       currentGroup.element_b.setAttribute('pointer-events','all')
     }
     
@@ -716,6 +716,7 @@ function duplet(target_group, max_id_obj, myData_plain_origin, myData_plain) {
         }
 
         //Point
+        
         p1_old = myData_plain_origin.Line.list[id_old].p1;
         p2_old = myData_plain_origin.Line.list[id_old].p2;
         p1_new = p1_old + max_id_point
