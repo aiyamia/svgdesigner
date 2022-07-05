@@ -1,10 +1,21 @@
 ## 项目简介
 web版svg矢量图制作GUI
 
+## 更新
+[2022-7-5]
+1. 界面更新，按钮简化，新增暗夜/白昼两个主题。
+2. 修改了部分快捷键，已在下面的说明中更新。
+
+![2022-7-5界面演示](README_assets/2022-7-5界面演示.gif)
+
+
 ## 功能
 
+### 快捷绘图
+在默认的选择模式下按住`z`可以进行快捷绘图
+
 ### 点的磁吸
-拖动点时按住`ctrl`。
+拖动点时按住`shift`。
 <div style='display:flex'>
 <img src="./README_assets/2022-6-25-3_snap.gif" alt="drawing" width="300"/>
 </div>
@@ -34,7 +45,7 @@ web版svg矢量图制作GUI
 </div>
 
 ### 撤销/重做
-`ctrl+z`/`ctrl+y`
+`ctrl+u`/`ctrl+y`
 <div style='display:flex'>
 <img src="./README_assets/2022-7-3_undo_redo.gif" alt="drawing" width="600"/>
 </div>
