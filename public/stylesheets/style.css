@@ -1,15 +1,55 @@
+:root{
+  --html-color:#222946;
+  --container-color:#1c2136;
+  --container-border-color:#080a27;
+  --font-color: seagreen;
+  --widgets-pad-background:#434141;
+  --widgets-pad-box-shadow: 1px 1px 25px 0px black inset, 1px -1px 11px 0px black inset;
+  --widgets-button-background:#897f7f;
+  --widgets-button-hover-background:#bbb6a9;
+  --widgets-button-border-radius:3px;
+  --widgets-button-box-shadow: 1px 1px 0px 0px rgb(0 0 0) inset, -1px 1px 0px 0px black inset, 1px -1px 0px 0px black inset, -1px -1px 0px 0px black inset;
+}
+
 html{
   height: 100%;
   display: flex;
   align-items: center;
   justify-content: center;
+  background: floralwhite;
+  background: whitesmoke;
+  background: gainsboro;
+  background: dimgrey;
+  background: var(--html-color);
+}
+#theme_options{
+  outline: none;
+  color: var(--font-color);
+  background: var(--html-color);
+  height: 1.5rem;
+  border: black 1px solid;
+  border-radius: 5px;
+  box-shadow: 1px 1px 2px black inset, 1px -1px 2px black inset;
 }
 body {
   display: flex;
-  align-items: left;
+  flex-direction: column;
+  align-items: center;
   justify-content: center;
   padding: 50px;
   font: 14px "Lucida Grande", Helvetica, Arial, sans-serif;
+}
+
+#settings{
+  width: 80%;
+  display: flex;
+  justify-content: end;
+  padding: 5px;
+  margin: 5px;
+}
+
+#operate{
+  display: flex;
 }
 
 a {
@@ -19,32 +59,36 @@ a {
 
 
 #container{
+  border: var(--container-border-color) 5px solid;
   display: flex;
   align-items: left;
   justify-content: center;
   pointer-events: none;
+  background: var(--container-color);
 }
 
 .widgets{
-  padding: 5px;
+  border-radius: 5px;
+  padding: 3px;
+  margin-right: 5px;
   width: min-content;
   height: fit-content;
-  background-color: lightgrey;
-}
-.widgets button{
-  width: 2rem;
-  height: 2rem;
-  border:1px solid;
-  margin: 5px;
-  background-color: white;
-  cursor: pointer;
+  background-color: var(--widgets-pad-background);
+  box-shadow: var(--widgets-pad-box-shadow);
 }
 
-#select{
-  background-color: white;
+.widgets button{
+  border: none;
+  border-radius: var(--widgets-button-border-radius);
+  box-shadow: var(--widgets-button-box-shadow);
+  width: 2rem;
+  height: 2rem;
+  margin: 5px;
+  background-color: var(--widgets-button-background);
+  cursor: pointer;
 }
-#edit{
-  background-color: white;
+.widgets button:hover{
+  background-color: var(--widgets-button-hover-background);
 }
 #draw{
   background-color: orange;
@@ -55,21 +99,11 @@ a {
 #clear:active{
   background-color: black;
 }
-#download:hover{
-  background-color: lightgrey;
-}
+
 #download:active{
   background-color: black;
 }
-#undo:hover{
-  background-color: rgb(180, 255, 196);
-}
-#undo:active{
-  background-color: black;
-}
-#import:hover{
-  background-color: rgb(109, 209, 255);
-}
+
 #import:active{
   background-color: black;
 }
@@ -79,7 +113,6 @@ img{
   max-height:100%;
 }
 #lines {
-  border:1px solid;
   box-sizing: border-box;
   pointer-events:initial
 }

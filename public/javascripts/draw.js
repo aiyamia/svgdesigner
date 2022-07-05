@@ -269,12 +269,10 @@ lines.addEventListener("mousedown", e => {
     // console.log(`draw.js mousedown`);
     if(!down_elements){
       hide_all_bbox()
-      if(Object.keys(currentGroup.children).length==1 && Object.keys(currentGroup.children)[0].includes("Group")){
-        let this_b = getObj(Object.keys(currentGroup.children)[0]).bezier
-        if(this_b){
-          myData.Bezier.list[this_b].hide_control_widgets()
-        }
+      for(let i_b in myData.Bezier.list){
+        myData.Bezier.list[i_b].hide_control_widgets()
       }
+
       currentGroup.children = {}
       selecting = true
       m = oMousePosSVG(e);
@@ -461,38 +459,48 @@ lines.addEventListener("mouseup", e => {
     selecting = false;
     select_frame_element.setAttribute('visibility', 'hidden');
     let group_in_selection = []
+    let p;
     for(i_group in myData.Group.list){
       if (i_group != currentGroup.id) {
         let group = myData.Group.list[i_group]
-        let bbox = group.element_b.getBBox()
-
-        if (((bbox.x-x0)*(bbox.x-m.x)<0 && (bbox.y-y0)*(bbox.y-m.y)<0) &&
-            ((bbox.x+bbox.width-x0)*(bbox.x+bbox.width-m.x)<0 && (bbox.y+bbox.height-y0)*(bbox.y+bbox.height-m.y)<0)) {
+        let group_selected = true;
+        for(let i_p in group.getMovePoints()){
+          p = myData.Point.list[i_p]
+          if(isVisible(p.element_g) && p.id != groupRotPoint.id){
+            if(!((p.x-x0)*(p.x-m.x)<0 && (p.y-y0)*(p.y-m.y)<0)){
+              group_selected = false;
+              break;
+            }
+          }
+        }
+        if (group_selected) {
           currentGroup.addChild(group,false)
           group_in_selection.push(`${group.id}`)
-          console.log(`选中了组${group.id}`);
+          // console.log(`选中了组${group.id}`);
         }
       }
     }
     for(let i_p in myData.Point.list){
-      let p = myData.Point.list[i_p]
-      if(p.id != groupRotPoint.id){
+      p = myData.Point.list[i_p]
+      if(isVisible(p.element_g) && p.id != groupRotPoint.id){
         if((p.x-x0)*(p.x-m.x)<0 && (p.y-y0)*(p.y-m.y)<0){
           if(Object.keys(p.parentGroup).filter(x => group_in_selection.includes(x)).length==0){
             currentGroup.addChild(p,false)
-            console.log(`选中了点${p.id}`);
+            // console.log(`选中了点${p.id}`);
           }
         }
       }
     }
     for(let i_l in myData.Line.list){
       let l = myData.Line.list[i_l]
-      let l_p1 = myData.Point.list[l.p1]
-      let l_p2 = myData.Point.list[l.p2]
-      if((l_p1.x-x0)*(l_p1.x-m.x)<0 && (l_p1.y-y0)*(l_p1.y-m.y)<0 && (l_p2.x-x0)*(l_p2.x-m.x)<0 && (l_p2.y-y0)*(l_p2.y-m.y)<0){
-        if(Object.keys(l.parentGroup).filter(x => group_in_selection.includes(x)).length==0){
-          currentGroup.addChild(l,false)
-          console.log(`选中了线${l.id}`);
+      if (isVisible(l.element_g)) {
+        let l_p1 = myData.Point.list[l.p1]
+        let l_p2 = myData.Point.list[l.p2]
+        if((l_p1.x-x0)*(l_p1.x-m.x)<0 && (l_p1.y-y0)*(l_p1.y-m.y)<0 && (l_p2.x-x0)*(l_p2.x-m.x)<0 && (l_p2.y-y0)*(l_p2.y-m.y)<0){
+          if(Object.keys(l.parentGroup).filter(x => group_in_selection.includes(x)).length==0){
+            currentGroup.addChild(l,false)
+            // console.log(`选中了线${l.id}`);
+          }
         }
       }
     }
@@ -500,7 +508,7 @@ lines.addEventListener("mouseup", e => {
     if(selected_item.length!=0){
       currentGroup.update_bbox()
       currentGroup.show_bbox()
-      console.log(`你选中了${selected_item}`);
+      // console.log(`你选中了${selected_item}`);
       currentGroup.element_b.setAttribute('pointer-events','all')
     }
     
@@ -508,20 +516,15 @@ lines.addEventListener("mouseup", e => {
 });
 
 document.addEventListener("keydown", e => {
+  if (e.key=="z") {
+    draw_select = 1
+  }
   if(e.key=="Delete"){
     currentGroup.delete()
   }
   if (e.ctrlKey || e.metaKey) {
-    
     if(e.shiftKey){
       switch (e.key.toLowerCase()) {
-        case 's':
-            e.preventDefault();
-            alert('ctrl-shift-s');
-            break;
-        case 'z':
-            e.preventDefault();
-            break;
         case 'g':
             e.preventDefault();
             deConfirmGroup();
@@ -534,7 +537,7 @@ document.addEventListener("keydown", e => {
             e.preventDefault();
             redo()
             break;
-        case 'z':
+        case 'u':
             e.preventDefault();
             undo()
             break;
@@ -543,16 +546,16 @@ document.addEventListener("keydown", e => {
             confirmGroup();
             setArchive();
             break;
-        case 'd':
-            e.preventDefault();
-            duplicate();
-            break;
       }
     }
   }
 })
 
-
+document.addEventListener("keyup", e => {
+  if (e.key=="z") {
+    draw_select = 0
+  }
+})
 setArchive()
 
 function confirmGroup() {
@@ -604,9 +607,15 @@ function generateBboxElement(element){
   return rectBBox
 }
 
-function updateBboxElement(rectBBox,element){
+function updateBboxElement(rectBBox,element,compact=false){
   let bbox = element.getBBox();
-  let pad = 10
+  let pad;
+  if (compact) {
+    pad = 0
+  } else {
+    pad = 10
+  }
+  
   let w =  2*pad+bbox.width
   let h =  2*pad+bbox.height
   rectBBox.setAttribute('x', bbox.x-pad);
@@ -622,6 +631,9 @@ function hide_all_bbox() {
   let bbox_els = document.getElementsByClassName('bbox')
   for(let i_el=0;i_el<bbox_els.length;i_el++){
     bbox_els[i_el].setAttribute('visibility','hidden')
+  }
+  for(let i_group in myData.Group.list){
+    myData.Group.list[i_group].deHighlight_children()
   }
 }
 // a function to detect the mouse position on a resizable SVG element
@@ -906,6 +918,11 @@ function duplet(target_group, max_id_obj, myData_plain_origin, myData_plain) {
   }
 }
 
+
+function isVisible(domElement) {
+  return (domElement.hasAttribute('visibility') && domElement.getAttribute('visibility')!='hidden')||
+  !domElement.hasAttribute('visibility')
+}
 
 // function setArchive() {
 //   // arPoints = {...myData.Point.list}

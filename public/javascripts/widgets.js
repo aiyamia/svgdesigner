@@ -1,15 +1,16 @@
 const select_btn = document.getElementById('select');
 const draw_btn = document.getElementById('draw');
 
+
+
 const on_color = 'orange';
-const off_color = 'white';
 
 select_btn.addEventListener('click', function onClick() {
   if(draw_select == 1){
     drawing = false;
     moving = false;
     select_btn.style.backgroundColor = on_color;
-    draw_btn.style.backgroundColor = off_color;
+    draw_btn.style.backgroundColor = getComputedStyle(document.documentElement).getPropertyValue('--widgets-button-background');
     draw_select = 1-draw_select;
   }
 });
@@ -18,7 +19,7 @@ draw_btn.addEventListener('click', function onClick() {
   if(draw_select == 0){
     drawing = false;
     moving = false;
-    select_btn.style.backgroundColor = off_color;
+    select_btn.style.backgroundColor = getComputedStyle(document.documentElement).getPropertyValue('--widgets-button-background');
     draw_btn.style.backgroundColor = on_color;
     draw_select = 1-draw_select;
   }
@@ -32,10 +33,6 @@ clear_btn.addEventListener('click', function onClick() {
   Bezier.clear();
 });
 
-const undo_btn = document.getElementById('undo');
-undo_btn.addEventListener('click', function onClick() {
-  
-});
 
 
 document.querySelector('#download')

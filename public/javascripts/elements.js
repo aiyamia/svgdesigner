@@ -305,7 +305,7 @@ class Line extends Element {
       obj.p1.line[this.id] = null;
       obj.p2.line[this.id] = null;
       this.width = obj.width || 2;
-      this.color = obj.color || 'red';
+      this.color = obj.color || '#000';
       
       this.angle_in_deg = Math.atan2(obj.p2.y-obj.p1.y,obj.p2.x-obj.p1.x) * (180/Math.PI)
     }
@@ -561,36 +561,41 @@ class Group {
       myData.Point.list[i_p].rot(dtheta_in_deg)
     }
   }
-  update_bbox(recursive=true){
+  update_bbox(recursive=true,compact=false){
     // console.log(recursive);
     let group = document.createElementNS(SVG_NS, "g");
     group.setAttribute('id','tmp')
     
     for(let name in this.children){
-      let this_obj = getObj(name)
+      let child_obj = getObj(name)
       if(name.includes('Group')){
         // console.log(`组内有组${name}`);
         if(recursive){
           try {
-            this_obj.update_bbox()
+            child_obj.update_bbox(true,compact)
           } catch (error) {
             console.log('ooo');
           }
           
-          // this_obj.show_bbox()
+          // child_obj.show_bbox()
         }
-        group.appendChild(this_obj.element_b.cloneNode(true))
+        group.appendChild(child_obj.element_b.cloneNode(true))
       }else{
-        try {
-          group.appendChild(this_obj.element_g.cloneNode(true))
-        } catch (error) {
-          console.log(`ooo`);
+        if(isVisible(child_obj.element_g)){
+          try {
+            if(compact){
+              group.appendChild(child_obj.element_c.cloneNode(true))
+            }else{
+              group.appendChild(child_obj.element_g.cloneNode(true))
+            }
+          } catch (error) {
+            console.log(`ooo`);
+          }
         }
-        
       }
     }
     svg.appendChild(group)
-    updateBboxElement(this.element_b,group)
+    updateBboxElement(this.element_b,group,compact)
     
     svg.removeChild(group)
     if(recursive){
@@ -602,7 +607,7 @@ class Group {
       //   }
       // }
       for(let name in myData.Group.list){
-        myData.Group.list[name].update_bbox(false)
+        myData.Group.list[name].update_bbox(false,compact)
         // myData.Group.list[name].hide_bbox()
       }
     }
@@ -619,8 +624,69 @@ class Group {
     this.update_bbox()
     delete obj.parentGroup[this.id]
   }
+  highlight_children(){
+    for(let name in this.children){
+      let child_obj = getObj(name)
+      let [child_type,child_id] = name.split(/(?<=[^\d])(?=\d)/)
+      switch (child_type) {
+        case 'Group':
+          child_obj.element_b.setAttribute('fill','lightblue')
+          child_obj.element_b.setAttribute('opacity','0.5')
+          child_obj.element_b.setAttribute('visibility','visible')
+          break;
+        case 'Point':
+          if(isVisible(child_obj.element_g) && child_obj.id != groupRotPoint.id){
+            child_obj.element_c.setAttribute('fill','red')
+          }
+          break;
+        case 'Line':
+          if(isVisible(child_obj.element_g)){
+            child_obj.element_c.setAttribute('stroke','red')
+          }
+          break;
+        case 'Bezier':
+          if(isVisible(child_obj.element_g)){
+            child_obj.element_c.setAttribute('stroke','red')
+          }
+          break;
+        default:
+          break;
+      }
+    }
+  }
+  deHighlight_children(){
+    for(let name in this.children){
+      let child_obj = getObj(name)
+      let [child_type,child_id] = name.split(/(?<=[^\d])(?=\d)/)
+      switch (child_type) {
+        case 'Group':
+          child_obj.element_b.setAttribute('fill','none')
+          child_obj.element_b.removeAttribute('opacity')
+          child_obj.element_b.setAttribute('visibility','hidden')
+          break;
+        case 'Point':
+          if(isVisible(child_obj.element_g) && child_obj.id != groupRotPoint.id){
+            child_obj.element_c.setAttribute('fill','black')
+          }
+          break;
+        case 'Line':
+          if(isVisible(child_obj.element_g)){
+            child_obj.element_c.setAttribute('stroke','#000')
+          }
+          break;
+        case 'Bezier':
+          if(isVisible(child_obj.element_g)){
+            child_obj.element_c.setAttribute('stroke','#000')
+          }
+          break;
+        default:
+          break;
+      }
+    }
+  }
   show_bbox(){
     this.element_b.setAttribute('visibility','visible')
+    this.highlight_children()
     // if(Object.keys(this.children).length>1){
     //   for(let i_child in this.children){
     //     getObj(i_child).show_bbox()
@@ -643,6 +709,7 @@ class Group {
   }
   hide_bbox(){
     this.element_b.setAttribute('visibility','hidden')
+    this.deHighlight_children()
     if(Object.keys(this.children).length==1){
       if(Object.keys(this.children)[0].includes("Group")){
         for(let i_child in this.children){
@@ -774,7 +841,7 @@ class Bezier extends Element {
       this.p3 = obj.line2.p2;
       this.p4 = obj.line2.p1;
       this.width = obj.width || 2;
-      this.color = obj.color || 'red';
+      this.color = obj.color || '#000';
       
       this_p1 = myData.Point.list[this.p1]
       this_p2 = myData.Point.list[this.p2]
@@ -834,6 +901,9 @@ class Bezier extends Element {
 
     bezier.targetObj_typeid = `Group${this.parentGroup}`;
     bezier.classList.add('bezierlistener')
+    if (regenerate) {
+      this.hide_control_widgets()
+    }
   }
   update() {
     let this_p1 = myData.Point.list[this.p1]
