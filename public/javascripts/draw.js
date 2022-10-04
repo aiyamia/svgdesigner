@@ -240,330 +240,367 @@ select_frame_element.setAttribute('height', 5);
 select_frame_element.setAttribute('visibility', 'hidden');
 
 
-
+let mouse = 'up'
 //events
-// on mouse down you create the line and append it to the svg element
 lines.addEventListener("mousedown", e => {
-  if(draw_select==1){
-    m = oMousePosSVG(e);
-    p1 = new Point({x:m.x,y:m.y})
-    p2 = new Point({x:m.x,y:m.y})
-    if(l){
-      l0 = l
-    }
-    
-    l = new Line({p1:p1,p2:p2})
-    drawing = true
-    if(e.ctrlKey && l0){
-      b = new Bezier({line1:l0,line2:l})
-    }
-    
-  }else if(draw_select==0){
-    // console.log(e.target);
-    // console.log(e.target.getAttribute('class') && e.target.getAttribute('class').split(' ').includes('pointlistener'));
-    if(e.target.getAttribute('class')){
-      let target_class = e.target.getAttribute('class').split(' ');
-      if(target_class.includes('pointlistener') || target_class.includes('linelistener') || target_class.includes('bezierlistener') || target_class.includes('grouplistener')){
-        currentGroup.mousedown_event(e)
-      }
-    }
-    // console.log(`draw.js mousedown`);
-    
-    if(!down_elements){
-      hide_all_bbox()
-      for(let i_b in myData.Bezier.list){
-        myData.Bezier.list[i_b].hide_control_widgets()
-      }
-
-      currentGroup.children = {}
-      selecting = true
-      m = oMousePosSVG(e);
-      x0 = m.x
-      y0 = m.y
-
-      currentGroup.element_b.setAttribute('pointer-events','initial')
-          
-    }else{
-      if(e.altKey && groupRotPoint.groupRotSnapPoint){
-        // degree_cum = 0
-        snap_angles_in_deg.clear();
-        rot_relevent_lines_in_group = {};
-        let rot_relevent_lines = myData.Point.list[groupRotPoint.groupRotSnapPoint].line
-        
-        for (let i_line in rot_relevent_lines){
-          let rot_relevent_line = myData.Line.list[i_line];
-          if(!(group_to_move.contains(rot_relevent_line.type_id))){
-            
-            snap_angles_in_deg.add(rot_relevent_line.angle_in_deg)
-
-          }else{
-            rot_relevent_lines_in_group[i_line] = null;
-          }
-        }
-      }
-      if(e.ctrlKey){
-        duplicate()
-        //Thanks to https://stackoverflow.com/a/49122553
-        Object.defineProperty(e, 'target', {writable: false, value: currentGroup.element_b});
-        currentGroup.mousedown_event(e)
-      }
-    }
-  }
-});
-
-// on mouse move you update the line 
+  mouse = 'down'
+  m = oMousePosSVG(e);
+  x0 = m.x;
+  y0 = m.y;
+  
+  // console.log(`mousedown At (${m.x},${m.y})`);
+})
 lines.addEventListener("mousemove", e => {
-  
-  if (drawing) {
+  if (mouse == 'down') {
     m = oMousePosSVG(e);
-    p2.moveTo(m.x,m.y)
+    mouse = 'move'
   }
-  if(draw_select==0){
-    if(e.target.getAttribute('class') && e.target.getAttribute('class').split(' ').includes('pointlistener')){
-        currentGroup.mousemove_event(e)
-    }
-  }
-  if (selecting) {
-    m = oMousePosSVG(e);
-    select_frame_element.setAttribute('x', Math.min(x0,m.x));
-    select_frame_element.setAttribute('y', Math.min(y0,m.y));
-    select_frame_element.setAttribute('width', Math.abs(m.x-x0));
-    select_frame_element.setAttribute('height', Math.abs(m.y-y0));
-    select_frame_element.setAttribute('visibility', 'visible');
-    select_frame_element.setAttribute('stroke', box_color);
-  }
-  if(moving_group){
-    if(e.altKey){
-      //旋转
-      m = oMousePosSVG(e);
-      let lx = m.x - groupRotPoint.x
-      let ly = m.y - groupRotPoint.y
-      let theta_in_deg = Math.atan2(ly,lx) * (180/Math.PI)
-      let lx0 = x0 - groupRotPoint.x
-      let ly0 = y0 - groupRotPoint.y
-      let theta0_in_deg = Math.atan2(ly0,lx0) * (180/Math.PI)
-      let dtheta_in_deg = theta_in_deg - theta0_in_deg;
-
-      
-      x0 = m.x
-      y0 = m.y
-
-      if(groupRotPoint.groupRotSnapPoint){
-        snap_angles_in_deg_array = Array.from(snap_angles_in_deg)
-        let stop_loop = false
-        for(let i_line in rot_relevent_lines_in_group){
-          let rot_relevent_line_in_group = myData.Line.list[i_line];
-          for(let i_angle in snap_angles_in_deg_array){
-            snap_angle_in_deg = snap_angles_in_deg_array[i_angle];
-            let dtheta_ini = snap_angle_in_deg - rot_relevent_line_in_group.angle_in_deg
-            let dtheta1_in_deg_for_judge = dtheta_ini
-            // let dtheta2_in_deg_for_judge = Math.abs(dtheta_ini)-180
-            let dtheta2_in_deg_for_judge = dtheta_ini - Math.sign(snap_angle_in_deg) * 180
-            let condition1 = Math.abs(dtheta1_in_deg_for_judge) < err_range_angles_in_deg
-            let condition2 = Math.abs(dtheta2_in_deg_for_judge) < err_range_angles_in_deg
-            
-            if( condition1 || condition2){
-              dtheta_in_deg_to_snap = condition1 ? dtheta1_in_deg_for_judge : dtheta2_in_deg_for_judge
-
-              info_line.setAttribute('d',
-              `M 
-              0 
-              ${groupRotPoint.y - groupRotPoint.x * Math.tan(snap_angle_in_deg * (Math.PI/180))} 
-              L 
-              ${svg_width} 
-              ${groupRotPoint.y + (svg_width - groupRotPoint.x) * Math.tan(snap_angle_in_deg * (Math.PI/180))}`)
-              
-              svg.prepend(info_line)
-              info_line.setAttribute('visibility','visible')
-
-              stop_loop = true;
-              break;
-            }else{
-              info_line.setAttribute('visibility','hidden')
-              dtheta_in_deg_to_snap = null
-            }
-          }
-          
-          if(stop_loop){
-            break;
-          }
-        }
-      }
-      // degree_cum += dtheta_in_deg
-      
-      // if(dtheta_in_deg_to_snap){
-      //   snap_degree_cum += dtheta_in_deg
-      //   console.log(`snap_degree_cum：${snap_degree_cum}`);
-      //   if(Math.abs(snap_degree_cum)>1){
-      //     group_to_move.rotChildren(dtheta_in_deg)
-      //     console.log(`动！`);
-      //   }else{
-      //     console.log(`不动`);
-      //   }
-      // }else{
-      //   snap_degree_cum = 0
-        
-      // }
-      group_to_move.rotChildren(dtheta_in_deg)
-    }else{
-      m = oMousePosSVG(e);
-      dx = m.x - x0
-      dy = m.y - y0
-      if(Math.abs(dx)>0||Math.abs(dy)>0){
-        // console.log(`dx = ${dx};dy = ${dy}`);
-        if(groupRotPoint.groupRotSnapPoint){
-          // console.log(`groupRotPoint.groupRotSnapPoint`);
-          if(group_to_move.contains(`Point${groupRotPoint.groupRotSnapPoint}`)||group_to_move.contains(groupRotPoint.type_id)){
-            // console.log(`动了`);
-            groupRotPoint.groupRotSnapPoint = null
-          }
-        }
-        x0 = m.x
-        y0 = m.y
-        group_to_move.moveChildren(dx,dy)
-      }else{
-        // console.log(`没动`);
-      }
-    }
-    hide_all_bbox()
-  }
-});
-// on mouse up or mouse out the line ends here and you "empty" the eLine and oLine to be able to draw a new line
+})
 lines.addEventListener("mouseup", e => {
+  mouse = 'up'
+  m = oMousePosSVG(e);
+  dx = m.x - x0;
+  dy = m.y - y0;
+  if (dx < Math.pow(10,-2)||dy < Math.pow(10,-2)) {
+    console.log(`点击`);
+  } else {
+    console.log(`拖拽`);
+  }
   
-  if(draw_select==0){
-    if(e.target.getAttribute('class') && e.target.getAttribute('class').split(' ').includes('pointlistener')){
-      currentGroup.mouseup_event(e)
-    }
-  }
-  down_elements = false
-  if (drawing) {
-    if(e.ctrlKey && l0){
-      myData.Group.list[b.parentGroup].update_bbox()
-      // console.log();
-    }
-    setArchive()
-    drawing = false;
-  }
-  if (moving_group) {
-    setArchive()
-    // console.log(`draw.js  mouseup`);
-    if(e.altKey && groupRotPoint.groupRotSnapPoint){
-      if(dtheta_in_deg_to_snap){
-        // console.log(`snap啦！自动吸附${dtheta_in_deg_to_snap}°`);
-        if(e.shiftKey){
-          group_to_move.rotChildren(dtheta_in_deg_to_snap)
-        }
-        info_line.setAttribute('visibility','hidden')
-        dtheta_in_deg_to_snap = null;
-      }
-    }
-    moving_group = false;
-    currentGroup.update_bbox()
-    currentGroup.show_bbox()//保证线也全显示选框
-  }
-  if(selecting){
-    m = oMousePosSVG(e);
-    selecting = false;
-    select_frame_element.setAttribute('visibility', 'hidden');
-    let group_in_selection = []
-    let p;
-    for(i_group in myData.Group.list){
-      if (i_group != currentGroup.id) {
-        let group = myData.Group.list[i_group]
-        let group_selected = true;
-        for(let i_p in group.getMovePoints()){
-          p = myData.Point.list[i_p]
-          if(isVisible(p.element_g) && p.id != groupRotPoint.id){
-            if(!((p.x-x0)*(p.x-m.x)<0 && (p.y-y0)*(p.y-m.y)<0)){
-              group_selected = false;
-              break;
-            }
-          }
-        }
-        if (group_selected) {
-          currentGroup.addChild(group,false)
-          group_in_selection.push(`${group.id}`)
-          // console.log(`选中了组${group.id}`);
-        }
-      }
-    }
-    for(let i_p in myData.Point.list){
-      p = myData.Point.list[i_p]
-      if(isVisible(p.element_g) && p.id != groupRotPoint.id){
-        if((p.x-x0)*(p.x-m.x)<0 && (p.y-y0)*(p.y-m.y)<0){
-          if(Object.keys(p.parentGroup).filter(x => group_in_selection.includes(x)).length==0){
-            currentGroup.addChild(p,false)
-            // console.log(`选中了点${p.id}`);
-          }
-        }
-      }
-    }
-    for(let i_l in myData.Line.list){
-      let l = myData.Line.list[i_l]
-      if (isVisible(l.element_g)) {
-        let l_p1 = myData.Point.list[l.p1]
-        let l_p2 = myData.Point.list[l.p2]
-        if((l_p1.x-x0)*(l_p1.x-m.x)<0 && (l_p1.y-y0)*(l_p1.y-m.y)<0 && (l_p2.x-x0)*(l_p2.x-m.x)<0 && (l_p2.y-y0)*(l_p2.y-m.y)<0){
-          if(Object.keys(l.parentGroup).filter(x => group_in_selection.includes(x)).length==0){
-            currentGroup.addChild(l,false)
-            // console.log(`选中了线${l.id}`);
-          }
-        }
-      }
-    }
-    let selected_item = Object.keys(currentGroup.children)
-    if(selected_item.length!=0){
-      currentGroup.update_bbox()
-      currentGroup.show_bbox()
-      // console.log(`你选中了${selected_item}`);
-      currentGroup.element_b.setAttribute('pointer-events','all')
-    }
-    
-  }
-});
+  // console.log(`mouseup At (${m.x},${m.y})`);
+  // console.log(`dx dy (${dx}, ${dy})`);
+})
 
+//非ctrl/shift/alt键，按住会多次触发keydown事件
 document.addEventListener("keydown", e => {
-  if (e.key=="z") {
-    draw_select = 1
-  }
-  if(e.key=="Delete"){
-    currentGroup.delete()
-  }
-  if (e.ctrlKey || e.metaKey) {
-    if(e.shiftKey){
-      switch (e.key.toLowerCase()) {
-        case 'g':
-            e.preventDefault();
-            deConfirmGroup();
-            setArchive();
-            break;
-    }
-    }else{
-      switch (e.key.toLowerCase()) {
-        case 'y':
-            e.preventDefault();
-            redo()
-            break;
-        case 'u':
-            e.preventDefault();
-            undo()
-            break;
-        case 'g':
-            e.preventDefault();
-            confirmGroup();
-            setArchive();
-            break;
-      }
-    }
-  }
+  console.log(`Key ${e.key} down`);
+})
+document.addEventListener("keyup", e => {
+  console.log(`Key ${e.key} up`);
 })
 
-document.addEventListener("keyup", e => {
-  if (e.key=="z") {
-    draw_select = 0
-  }
-})
+
+// lines.addEventListener("mousedown", e => {
+//   if(draw_select==1){
+//     m = oMousePosSVG(e);
+//     p1 = new Point({x:m.x,y:m.y})
+//     p2 = new Point({x:m.x,y:m.y})
+//     if(l){
+//       l0 = l
+//     }
+    
+//     l = new Line({p1:p1,p2:p2})
+//     drawing = true
+//     if(e.ctrlKey && l0){
+//       b = new Bezier({line1:l0,line2:l})
+//     }
+    
+//   }else if(draw_select==0){
+//     // console.log(e.target);
+//     // console.log(e.target.getAttribute('class') && e.target.getAttribute('class').split(' ').includes('pointlistener'));
+//     if(e.target.getAttribute('class')){
+//       let target_class = e.target.getAttribute('class').split(' ');
+//       if(target_class.includes('pointlistener') || target_class.includes('linelistener') || target_class.includes('bezierlistener') || target_class.includes('grouplistener')){
+//         currentGroup.mousedown_event(e)
+//       }
+//     }
+//     // console.log(`draw.js mousedown`);
+    
+//     if(!down_elements){
+//       hide_all_bbox()
+//       for(let i_b in myData.Bezier.list){
+//         myData.Bezier.list[i_b].hide_control_widgets()
+//       }
+
+//       currentGroup.children = {}
+//       selecting = true
+//       m = oMousePosSVG(e);
+//       x0 = m.x
+//       y0 = m.y
+
+//       currentGroup.element_b.setAttribute('pointer-events','initial')
+          
+//     }else{
+//       if(e.altKey && groupRotPoint.groupRotSnapPoint){
+//         // degree_cum = 0
+//         snap_angles_in_deg.clear();
+//         rot_relevent_lines_in_group = {};
+//         let rot_relevent_lines = myData.Point.list[groupRotPoint.groupRotSnapPoint].line
+        
+//         for (let i_line in rot_relevent_lines){
+//           let rot_relevent_line = myData.Line.list[i_line];
+//           if(!(group_to_move.contains(rot_relevent_line.type_id))){
+            
+//             snap_angles_in_deg.add(rot_relevent_line.angle_in_deg)
+
+//           }else{
+//             rot_relevent_lines_in_group[i_line] = null;
+//           }
+//         }
+//       }
+//       if(e.ctrlKey){
+//         duplicate()
+//         //Thanks to https://stackoverflow.com/a/49122553
+//         Object.defineProperty(e, 'target', {writable: false, value: currentGroup.element_b});
+//         currentGroup.mousedown_event(e)
+//       }
+//     }
+//   }
+// });
+
+
+// lines.addEventListener("mousemove", e => {
+  
+//   if (drawing) {
+//     m = oMousePosSVG(e);
+//     p2.moveTo(m.x,m.y)
+//   }
+//   if(draw_select==0){
+//     if(e.target.getAttribute('class') && e.target.getAttribute('class').split(' ').includes('pointlistener')){
+//         currentGroup.mousemove_event(e)
+//     }
+//   }
+//   if (selecting) {
+//     m = oMousePosSVG(e);
+//     select_frame_element.setAttribute('x', Math.min(x0,m.x));
+//     select_frame_element.setAttribute('y', Math.min(y0,m.y));
+//     select_frame_element.setAttribute('width', Math.abs(m.x-x0));
+//     select_frame_element.setAttribute('height', Math.abs(m.y-y0));
+//     select_frame_element.setAttribute('visibility', 'visible');
+//     select_frame_element.setAttribute('stroke', box_color);
+//   }
+//   if(moving_group){
+//     if(e.altKey){
+//       //旋转
+//       m = oMousePosSVG(e);
+//       let lx = m.x - groupRotPoint.x
+//       let ly = m.y - groupRotPoint.y
+//       let theta_in_deg = Math.atan2(ly,lx) * (180/Math.PI)
+//       let lx0 = x0 - groupRotPoint.x
+//       let ly0 = y0 - groupRotPoint.y
+//       let theta0_in_deg = Math.atan2(ly0,lx0) * (180/Math.PI)
+//       let dtheta_in_deg = theta_in_deg - theta0_in_deg;
+
+      
+//       x0 = m.x
+//       y0 = m.y
+
+//       if(groupRotPoint.groupRotSnapPoint){
+//         snap_angles_in_deg_array = Array.from(snap_angles_in_deg)
+//         let stop_loop = false
+//         for(let i_line in rot_relevent_lines_in_group){
+//           let rot_relevent_line_in_group = myData.Line.list[i_line];
+//           for(let i_angle in snap_angles_in_deg_array){
+//             snap_angle_in_deg = snap_angles_in_deg_array[i_angle];
+//             let dtheta_ini = snap_angle_in_deg - rot_relevent_line_in_group.angle_in_deg
+//             let dtheta1_in_deg_for_judge = dtheta_ini
+//             // let dtheta2_in_deg_for_judge = Math.abs(dtheta_ini)-180
+//             let dtheta2_in_deg_for_judge = dtheta_ini - Math.sign(snap_angle_in_deg) * 180
+//             let condition1 = Math.abs(dtheta1_in_deg_for_judge) < err_range_angles_in_deg
+//             let condition2 = Math.abs(dtheta2_in_deg_for_judge) < err_range_angles_in_deg
+            
+//             if( condition1 || condition2){
+//               dtheta_in_deg_to_snap = condition1 ? dtheta1_in_deg_for_judge : dtheta2_in_deg_for_judge
+
+//               info_line.setAttribute('d',
+//               `M 
+//               0 
+//               ${groupRotPoint.y - groupRotPoint.x * Math.tan(snap_angle_in_deg * (Math.PI/180))} 
+//               L 
+//               ${svg_width} 
+//               ${groupRotPoint.y + (svg_width - groupRotPoint.x) * Math.tan(snap_angle_in_deg * (Math.PI/180))}`)
+              
+//               svg.prepend(info_line)
+//               info_line.setAttribute('visibility','visible')
+
+//               stop_loop = true;
+//               break;
+//             }else{
+//               info_line.setAttribute('visibility','hidden')
+//               dtheta_in_deg_to_snap = null
+//             }
+//           }
+          
+//           if(stop_loop){
+//             break;
+//           }
+//         }
+//       }
+//       // degree_cum += dtheta_in_deg
+      
+//       // if(dtheta_in_deg_to_snap){
+//       //   snap_degree_cum += dtheta_in_deg
+//       //   console.log(`snap_degree_cum：${snap_degree_cum}`);
+//       //   if(Math.abs(snap_degree_cum)>1){
+//       //     group_to_move.rotChildren(dtheta_in_deg)
+//       //     console.log(`动！`);
+//       //   }else{
+//       //     console.log(`不动`);
+//       //   }
+//       // }else{
+//       //   snap_degree_cum = 0
+        
+//       // }
+//       group_to_move.rotChildren(dtheta_in_deg)
+//     }else{
+//       m = oMousePosSVG(e);
+//       dx = m.x - x0
+//       dy = m.y - y0
+//       if(Math.abs(dx)>0||Math.abs(dy)>0){
+//         // console.log(`dx = ${dx};dy = ${dy}`);
+//         if(groupRotPoint.groupRotSnapPoint){
+//           // console.log(`groupRotPoint.groupRotSnapPoint`);
+//           if(group_to_move.contains(`Point${groupRotPoint.groupRotSnapPoint}`)||group_to_move.contains(groupRotPoint.type_id)){
+//             // console.log(`动了`);
+//             groupRotPoint.groupRotSnapPoint = null
+//           }
+//         }
+//         x0 = m.x
+//         y0 = m.y
+//         group_to_move.moveChildren(dx,dy)
+//       }else{
+//         // console.log(`没动`);
+//       }
+//     }
+//     hide_all_bbox()
+//   }
+// });
+
+// lines.addEventListener("mouseup", e => {
+  
+//   if(draw_select==0){
+//     if(e.target.getAttribute('class') && e.target.getAttribute('class').split(' ').includes('pointlistener')){
+//       currentGroup.mouseup_event(e)
+//     }
+//   }
+//   down_elements = false
+//   if (drawing) {
+//     if(e.ctrlKey && l0){
+//       myData.Group.list[b.parentGroup].update_bbox()
+//       // console.log();
+//     }
+//     setArchive()
+//     drawing = false;
+//   }
+//   if (moving_group) {
+//     setArchive()
+//     // console.log(`draw.js  mouseup`);
+//     if(e.altKey && groupRotPoint.groupRotSnapPoint){
+//       if(dtheta_in_deg_to_snap){
+//         // console.log(`snap啦！自动吸附${dtheta_in_deg_to_snap}°`);
+//         if(e.shiftKey){
+//           group_to_move.rotChildren(dtheta_in_deg_to_snap)
+//         }
+//         info_line.setAttribute('visibility','hidden')
+//         dtheta_in_deg_to_snap = null;
+//       }
+//     }
+//     moving_group = false;
+//     currentGroup.update_bbox()
+//     currentGroup.show_bbox()//保证线也全显示选框
+//   }
+//   if(selecting){
+//     m = oMousePosSVG(e);
+//     selecting = false;
+//     select_frame_element.setAttribute('visibility', 'hidden');
+//     let group_in_selection = []
+//     let p;
+//     for(i_group in myData.Group.list){
+//       if (i_group != currentGroup.id) {
+//         let group = myData.Group.list[i_group]
+//         let group_selected = true;
+//         for(let i_p in group.getMovePoints()){
+//           p = myData.Point.list[i_p]
+//           if(isVisible(p.element_g) && p.id != groupRotPoint.id){
+//             if(!((p.x-x0)*(p.x-m.x)<0 && (p.y-y0)*(p.y-m.y)<0)){
+//               group_selected = false;
+//               break;
+//             }
+//           }
+//         }
+//         if (group_selected) {
+//           currentGroup.addChild(group,false)
+//           group_in_selection.push(`${group.id}`)
+//           // console.log(`选中了组${group.id}`);
+//         }
+//       }
+//     }
+//     for(let i_p in myData.Point.list){
+//       p = myData.Point.list[i_p]
+//       if(isVisible(p.element_g) && p.id != groupRotPoint.id){
+//         if((p.x-x0)*(p.x-m.x)<0 && (p.y-y0)*(p.y-m.y)<0){
+//           if(Object.keys(p.parentGroup).filter(x => group_in_selection.includes(x)).length==0){
+//             currentGroup.addChild(p,false)
+//             // console.log(`选中了点${p.id}`);
+//           }
+//         }
+//       }
+//     }
+//     for(let i_l in myData.Line.list){
+//       let l = myData.Line.list[i_l]
+//       if (isVisible(l.element_g)) {
+//         let l_p1 = myData.Point.list[l.p1]
+//         let l_p2 = myData.Point.list[l.p2]
+//         if((l_p1.x-x0)*(l_p1.x-m.x)<0 && (l_p1.y-y0)*(l_p1.y-m.y)<0 && (l_p2.x-x0)*(l_p2.x-m.x)<0 && (l_p2.y-y0)*(l_p2.y-m.y)<0){
+//           if(Object.keys(l.parentGroup).filter(x => group_in_selection.includes(x)).length==0){
+//             currentGroup.addChild(l,false)
+//             // console.log(`选中了线${l.id}`);
+//           }
+//         }
+//       }
+//     }
+//     let selected_item = Object.keys(currentGroup.children)
+//     if(selected_item.length!=0){
+//       currentGroup.update_bbox()
+//       currentGroup.show_bbox()
+//       // console.log(`你选中了${selected_item}`);
+//       currentGroup.element_b.setAttribute('pointer-events','all')
+//     }
+    
+//   }
+// });
+
+// document.addEventListener("keydown", e => {
+//   if (e.key=="z") {
+//     draw_select = 1
+//   }
+//   if(e.key=="Delete"){
+//     currentGroup.delete()
+//   }
+//   if (e.ctrlKey || e.metaKey) {
+//     if(e.shiftKey){
+//       switch (e.key.toLowerCase()) {
+//         case 'g':
+//             e.preventDefault();
+//             deConfirmGroup();
+//             setArchive();
+//             break;
+//     }
+//     }else{
+//       switch (e.key.toLowerCase()) {
+//         case 'y':
+//             e.preventDefault();
+//             redo()
+//             break;
+//         case 'u':
+//             e.preventDefault();
+//             undo()
+//             break;
+//         case 'g':
+//             e.preventDefault();
+//             confirmGroup();
+//             setArchive();
+//             break;
+//       }
+//     }
+//   }
+// })
+
+// document.addEventListener("keyup", e => {
+//   if (e.key=="z") {
+//     draw_select = 0
+//   }
+// })
 setArchive()
 
 function confirmGroup() {

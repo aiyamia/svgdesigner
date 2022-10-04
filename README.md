@@ -1,92 +1,94 @@
-## 项目简介
-web版svg矢量图制作GUI
+## Introduction
+A svg vector graphic maker with GUI
 
-## 更新
+This README also has a [Chinese version (中文版)](./README_ZH.md).
+
+## Updates
 [2022-7-5]
-1. 界面更新，按钮简化，新增暗夜/白昼两个主题。
-2. 修改了部分快捷键，已在下面的说明中更新。
+1. Update the UI; simplify the buttons; add two theme (dark/light).
+2. Change a part of shortcuts (updated in the following).
 
 ![2022-7-5界面演示](README_assets/2022-7-5界面演示.gif)
 
 
-## 基本功能
+## Basic functions
 
-### 快捷绘图
-在默认的选择模式下按住`z`可以进行快捷绘图
+### Fast drawing
+Under the default selecting mode, press `z` to switch to drawing mode temporarily.
 
-### 绘制Bezier曲线
-绘制模式下，先画一条线，然后按住`ctrl`再画另一条。（注意在快捷绘图模式下，需要同时按住`z`）
+### Create Bezier curves
+Under drawing mode, you can firstly draw a line, and hold `ctrl` to draw another, then a Bezier curve is created using this two lines as control handles. (Note under the fast drawing mode, you need to hold `z` too.)
 <div style='display:flex'>
 <img src="./README_assets/2022-6-29-1_bezier.gif" alt="drawing" width="300"/>
 </div>
 
-### 复制
-`ctrl`+点击/拖动
+### Duplicate
+`ctrl` + click/drag
 
-### 加/减选择
-`shift`+左击
+### Add to (or remove from) selection
+`shift` + click
 
-### 组合/解组
+### Group/De-group
 `ctrl+g`/`ctrl+shift+g`
 <div style='display:flex'>
 <img src="./README_assets/2022-6-28-5_group.gif" alt="drawing" width="300"/>
 </div>
 
-### 旋转
-按住`alt`即可绕黄色点（后称“旋转中心”）旋转
+### Rotate
+Press `alt` and then you can rotate the selected item around the yellow point ("rotation center").
 <div style='display:flex'>
 <img src="./README_assets/2022-6-29-2_rotate.gif" alt="drawing" width="300"/>
 </div>
 
-### 撤销/重做
+### Undo/Redo
 `ctrl+u`/`ctrl+y`
 <div style='display:flex'>
 <img src="./README_assets/2022-7-3_undo_redo.gif" alt="drawing" width="600"/>
 </div>
 
-### 清空
-左侧工具栏清空按钮
+### Clear
+Use the "clear" button at the left toolbox.
 <div style='display:flex'>
 <img src="./README_assets/2022-6-25-1_clear.gif" alt="drawing" width="300"/>
 </div>
 
-### 删除元素
-`Delete`键
+### Delete
+`Delete` Key
 
 
-## 特殊功能
-### 点的磁吸
-拖动点时按住`shift`。
+## Special functions
+### Snapping of points
+Press `shift` when dragging a point.
 <div style='display:flex'>
 <img src="./README_assets/2022-6-25-3_snap.gif" alt="drawing" width="300"/>
 </div>
 
-### 线的旋转角度磁吸
-当旋转中心在线（或选中组中的某根线）的端点上时（可以先将旋转中心磁吸到此处），按住`alt`旋转时，会显示绿色角度磁吸参考线，若此时也按住了`shift`，则在松开鼠标时若绿色磁吸参考线仍显示时，被旋转的对象会旋转吸附到参考线位置。具体见图，可能会更加明白。
+### Snapping of angle of lines
+With the rotation center at the end of the selcted line (or one line in the selection group), rotate with pressing `alt`, and you will find at some perticular angle there will show a green dash line. When the green line is visible, if you press `shift` also, then the selected items would be snapped to align with the connected (yet unselected) line(s). This might be clearer in the demonstration here.
 <div style='display:flex'>
 <img src="./README_assets/2022-6-30-2_line-snap.gif" alt="drawing" width="300"/>
 </div>
 
-## 开始使用
+## Getting started
 
-本项目基于nodejs，首先要有nodejs。
+This project is based on Nodejs, so firstly you should have Nodejs installed on your computer.
 
-在项目目录下打开命令行，运行如下命令安装所需的npm包。
+Open command prompt under the project folder, and run the following command to install requisite npm packages.
 ```cmd
 npm install
 ```
 
-在bin/www文件中
+In bin/www file, you can configure your port (such as `3000`) here:
 ```js
 var port = normalizePort(process.env.PORT || '3000');
 ```
-处配置端口，比如`3000`。
 
-运行以下命令开服。
+
+Run this command to start your server:
 ```cmd
 npm start
 ```
 
-在浏览器端访问（当端口为`3000`时）：
+Use this link to test on your local machine (when the port is set to `3000`)：
 http://127.0.0.1:3000/
 
